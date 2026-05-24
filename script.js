@@ -88,8 +88,12 @@ scanButton.onclick = async () => {
   try {
 
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: true
-    })
+  video: {
+    facingMode: "environment"
+  }
+})
+
+    
 
     video.srcObject = stream
 
