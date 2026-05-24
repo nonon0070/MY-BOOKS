@@ -5,11 +5,9 @@ const list = document.getElementById("bookList")
 let books = JSON.parse(localStorage.getItem("books")) || []
 
 function displayBooks() {
-
   list.innerHTML = ""
 
   books.forEach((book, index) => {
-
     const div = document.createElement("div")
 
     const img = document.createElement("img")
@@ -23,11 +21,8 @@ function displayBooks() {
     del.textContent = "削除"
 
     del.onclick = () => {
-
       books.splice(index, 1)
-
       localStorage.setItem("books", JSON.stringify(books))
-
       displayBooks()
     }
 
@@ -42,7 +37,6 @@ function displayBooks() {
 displayBooks()
 
 button.onclick = async () => {
-
   const title = input.value
 
   const res = await fetch(
@@ -61,16 +55,13 @@ button.onclick = async () => {
 
   const newBook = {
     title: bookData.title,
-
     image: bookData.cover_i
       ? `https://covers.openlibrary.org/b/id/${bookData.cover_i}-M.jpg`
       : "https://upload.wikimedia.org/wikipedia/commons/8/84/Example.svg"
   }
 
   books.push(newBook)
-
   localStorage.setItem("books", JSON.stringify(books))
-
   displayBooks()
 
   input.value = ""
@@ -82,28 +73,34 @@ const video = document.getElementById("video")
 const codeReader = new ZXing.BrowserBarcodeReader()
 
 scanButton.onclick = async () => {
-
   alert("バーコード開始")
 
-  try {
+  codeReader.decodeFromVideoDevice(
+    null,
+    video,
+    async (result, error) => {
+      if (result) {
+        const isbn = result.text
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-  video: {
-    facingMode: "environment"
-  }
-})
+        alert("読み取り成功: " + isbn)
 
-    
+        const res = await fetch(
+          "https://openlibrary.org/isbn/" + isbn + ".json"
+        )
 
-    video.srcObject = stream
+        const data = await res.json()
 
-    video.play()
+        const newBook = {
+          title: data.title || isbn,
+          image: "https://covers.openlibrary.org/isbn/" + isbn + "-M.jpg"
+        }
 
-    alert("カメラ成功")
+        books.push(newBook)
+        localStorage.setItem("books", JSON.stringify(books))
+        displayBooks()
 
-  } catch (e) {
-
-    alert("カメラ失敗")
-    console.log(e)
-  }
+        codeReader.reset()
+      }
+    }
+  )
 }
