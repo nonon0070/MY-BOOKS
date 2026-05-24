@@ -1,0 +1,15 @@
+body {
+  font-family: sans-serif;
+  padding: 20px;
+}
+
+div {
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin-top: 10px;
+  width: 220px;
+}
+
+img {
+  width: 100%;
+}

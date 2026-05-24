@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>本棚</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <h1>本棚</h1>
+
+  <input id="titleInput" placeholder="本のタイトル">
+  <button id="addButton">追加</button>
+
+  <button id="scanButton">バーコード読み取り</button>
+
+  <br><br>
+
+  <video id="video" width="300"></video>
+
+  <hr>
+
+  <div id="bookList"></div>
+
+  <script src="https://unpkg.com/@zxing/library@latest"></script>
+  <script src="script.js"></script>
+
+</body>
+</html>
