@@ -74,8 +74,9 @@ async function addBookByISBN(isbn) {
   const newBook = {
     isbn: isbn,
     title: summary.title || isbn,
-    image: summary.cover || "https://covers.openlibrary.org/isbn/" + isbn + "-M.jpg"
-  }
+    image:
+  summary.cover ||
+  "https://books.google.com/books/content?vid=ISBN" + isbn + "&printsec=frontcover&img=1&zoom=1&source=gbs_api"
 
   books.push(newBook)
   saveBooks()
