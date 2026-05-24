@@ -18,7 +18,9 @@ function displayBooks() {
     const div = document.createElement("div")
 
     const img = document.createElement("img")
-    img.src = book.image || "https://upload.wikimedia.org/wikipedia/commons/8/84/Example.svg"
+    img.src =
+      book.image ||
+      "https://upload.wikimedia.org/wikipedia/commons/8/84/Example.svg"
 
     const title = document.createElement("p")
     title.textContent = book.title || "タイトル不明"
@@ -61,7 +63,6 @@ async function addBookByISBN(isbn) {
 
   const res = await fetch("https://api.openbd.jp/v1/get?isbn=" + isbn)
   const data = await res.json()
-
   const info = data[0]
 
   if (!info) {
@@ -71,21 +72,20 @@ async function addBookByISBN(isbn) {
 
   const summary = info.summary
 
- const newBook = {
-  isbn: isbn,
-  title: summary.title || isbn,
-  image:
-    summary.cover ||
-    "https://books.google.com/books/content?vid=ISBN" +
-      isbn +
-      "&printsec=frontcover&img=1&zoom=1&source=gbs_api"
+  const newBook = {
+    isbn: isbn,
+    title: summary.title || isbn,
+    image:
+      summary.cover ||
+      "https://books.google.com/books/content?vid=ISBN" +
+        isbn +
+        "&printsec=frontcover&img=1&zoom=1&source=gbs_api"
+  }
 
+  books.push(newBook)
+  saveBooks()
+  displayBooks()
 }
-books.push(newBook)
-
-saveBooks()
-
-displayBooks()
 
 button.onclick = async () => {
   const text = input.value.trim()
@@ -96,12 +96,14 @@ button.onclick = async () => {
     return
   }
 
-  alert("今はISBN検索を優先中")
+  alert("ISBNを入力するか、バーコードで読み取ってください")
 }
 
 const codeReader = new ZXing.BrowserBarcodeReader()
 
 scanButton.onclick = async () => {
+  if (scanning) return
+
   scanning = true
   alert("バーコード開始")
 
@@ -129,4 +131,4 @@ scanButton.onclick = async () => {
     alert("バーコード起動失敗")
     console.log(e)
   }
- 
+}
