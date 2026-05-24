@@ -97,25 +97,31 @@ button.onclick = async () => {
 const codeReader = new ZXing.BrowserBarcodeReader()
 
 scanButton.onclick = async () => {
-  if (scanning) return
-
   scanning = true
   alert("バーコード開始")
 
-  codeReader.decodeFromVideoDevice(
-    { facingMode: "environment" },
-    video,
-    async (result, error) => {
-      if (result && scanning) {
-        scanning = false
+  try {
+    codeReader.reset()
 
-        const isbn = result.text
-        input.value = isbn
+    codeReader.decodeFromVideoDevice(
+      null,
+      video,
+      async (result, error) => {
+        if (result && scanning) {
+          scanning = false
 
-        codeReader.reset()
+          const isbn = result.text
+          input.value = isbn
 
-        await addBookByISBN(isbn)
+          codeReader.reset()
+
+          await addBookByISBN(isbn)
+        }
       }
-    }
-  )
+    )
+  } catch (e) {
+    scanning = false
+    alert("バーコード起動失敗")
+    console.log(e)
+  }
 }
