@@ -71,17 +71,21 @@ async function addBookByISBN(isbn) {
 
   const summary = info.summary
 
-  const newBook = {
-    isbn: isbn,
-    title: summary.title || isbn,
-    image:
-  summary.cover ||
-  "https://books.google.com/books/content?vid=ISBN" + isbn + "&printsec=frontcover&img=1&zoom=1&source=gbs_api"
+ const newBook = {
+  isbn: isbn,
+  title: summary.title || isbn,
+  image:
+    summary.cover ||
+    "https://books.google.com/books/content?vid=ISBN" +
+      isbn +
+      "&printsec=frontcover&img=1&zoom=1&source=gbs_api"
 
-  books.push(newBook)
-  saveBooks()
-  displayBooks()
 }
+books.push(newBook)
+
+saveBooks()
+
+displayBooks()
 
 button.onclick = async () => {
   const text = input.value.trim()
@@ -125,4 +129,4 @@ scanButton.onclick = async () => {
     alert("バーコード起動失敗")
     console.log(e)
   }
-}
+ 
