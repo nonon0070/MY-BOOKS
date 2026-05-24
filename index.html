@@ -9,20 +9,38 @@
 
 <body>
 
+  <section id="shelfPage">
+
   <h1>本棚</h1>
 
-  <input id="titleInput" placeholder="本のタイトル">
-  <button id="addButton">追加</button>
+  <button id="goScanButton">
+    ＋ 本を追加
+  </button>
 
-  <button id="scanButton">バーコード読み取り</button>
+  <div id="bookList"></div>
+
+</section>
+
+<section id="scanPage" style="display: none;">
+
+  <h1>バーコード読み取り</h1>
+
+  <button id="backButton">
+    ← 本棚に戻る
+  </button>
 
   <br><br>
 
   <video id="video" width="300"></video>
 
-  <hr>
+  <br><br>
 
-  <div id="bookList"></div>
+  <button id="scanButton">
+    読み取り開始
+  </button>
+
+</section>
+  
 
   <script src="https://unpkg.com/@zxing/library@latest"></script>
   <script src="script.js"></script>

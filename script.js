@@ -52,7 +52,6 @@ async function addBookByISBN(isbn) {
   isbn = isbn.replace(/[^0-9X]/gi, "")
 
   if (!isbn.startsWith("978") && !isbn.startsWith("979")) {
-    alert("ISBNではないバーコードかも: " + isbn)
     return
   }
 
