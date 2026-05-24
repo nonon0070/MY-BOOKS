@@ -20,8 +20,10 @@ scanButton.onclick = async () => {
   alert("カメラ起動テスト")
 
   const stream = await navigator.mediaDevices.getUserMedia({
-    video: true
-  })
+  video: {
+    facingMode: "environment"
+  }
+})
 
   video.srcObject = stream
   video.play()
