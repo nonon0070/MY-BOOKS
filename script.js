@@ -21,29 +21,40 @@ let books = JSON.parse(localStorage.getItem("books")) || []
 function saveBooks() {
   localStorage.setItem("books", JSON.stringify(books))
 }
-
 function displayBooks() {
   list.innerHTML = ""
 
   books.forEach((book, index) => {
+    const div = document.createElement("div")
+
     const img = document.createElement("img")
     img.src = book.image
     img.className = "book-cover"
-  
-   img.onclick = () => {
 
-  const ok = confirm("この本を削除しますか？")
+    const p = document.createElement("p")
+    p.textContent = book.isbn
 
-  if (!ok) {
-    return
-  }
+    div.appendChild(img)
+    div.appendChild(p)
 
-  books.splice(index, 1)
+    div.onclick = () => {
+      const ok = confirm("この本を削除しますか？")
 
-  saveBooks()
+      if (!ok) {
+        return
+      }
 
-  displayBooks()
+      books.splice(index, 1)
+
+      saveBooks()
+
+      displayBooks()
+    }
+
+    list.appendChild(div)
+  })
 }
+
   
     list.appendChild(img)
   })
