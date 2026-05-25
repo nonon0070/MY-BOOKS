@@ -29,17 +29,19 @@ function displayBooks() {
     const div = document.createElement("div")
     div.className = "book-item"
 
-    if (book.image) {
-      const img = document.createElement("img")
-      img.src = book.image
-      img.className = "book-cover"
-      div.appendChild(img)
-    } else {
+    const img = document.createElement("img")
+    img.src = book.image
+    img.className = "book-cover"
+
+    img.onerror = () => {
       const noCover = document.createElement("div")
       noCover.className = "book-cover"
       noCover.textContent = "表紙なし"
-      div.appendChild(noCover)
+
+      div.replaceChild(noCover, img)
     }
+
+    div.appendChild(img)
 
     div.onclick = () => {
       const ok = confirm("この本を削除しますか？")
@@ -89,69 +91,23 @@ async function addBookByISBN(isbn) {
   const response = await fetch("https://api.openbd.jp/v1/get?isbn=" + isbn)
   const data = await response.json()
 
-  console.log("openBD全部:", data)
-  console.log(
-  "openBD内のURL一覧:",
-  JSON.stringify(data).match(/https?:\/\/[^"]+/g)
-)
-
-
   let title = "タイトル不明"
-  let image = ""
 
   if (data[0] !== null) {
     if (data[0].summary && data[0].summary.title) {
       title = data[0].summary.title
     }
-
-    if (data[0].summary && data[0].summary.cover) {
-      image = data[0].summary.cover
-    }
-
-    if (image === "" && data[0].onix) {
-      const collateralDetail = data[0].onix.CollateralDetail
-
-      if (
-        collateralDetail &&
-        collateralDetail.SupportingResource &&
-        collateralDetail.SupportingResource[0] &&
-        collateralDetail.SupportingResource[0].ResourceVersion &&
-        collateralDetail.SupportingResource[0].ResourceVersion[0] &&
-        collateralDetail.SupportingResource[0].ResourceVersion[0].ResourceLink
-      ) {
-        image = collateralDetail.SupportingResource[0].ResourceVersion[0].ResourceLink
-      }
-    }
   }
-
-  console.log("ISBN:", isbn)
-  console.log("タイトル:", title)
-  console.log("画像URL:", image)
 
   const book = {
     isbn: isbn,
     title: title,
-    image: image
+    image: "https://cover.openbd.jp/" + isbn + ".jpg"
   }
 
   books.push(book)
   saveBooks()
   displayBooks()
-}
-
-
-button.onclick = async () => {
-  const isbn = input.value.trim()
-
-  if (isbn === "") {
-    alert("ISBNを入力してください")
-    return
-  }
-
-  await addBookByISBN(isbn)
-
-  input.value = ""
-  showPage(shelfPage)
 }
 
 const codeReader = new ZXing.BrowserBarcodeReader()
