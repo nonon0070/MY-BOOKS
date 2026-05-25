@@ -28,11 +28,11 @@ function displayBooks() {
     const img = document.createElement("img")
 
     img.src = book.image || "https://ndlsearch.ndl.go.jp/thumbnail/" + book.isbn
+    img.onerror = () => {
+  img.src = "https://ndlsearch.ndl.go.jp/thumbnail/" + book.isbn
+}
     img.className = "book-cover"
 
-    img.onerror = () => {
-      img.src = "https://ndlsearch.ndl.go.jp/thumbnail/" + book.isbn
-    }
 
     img.onclick = () => {
       const ok = confirm("この本を削除しますか？")
