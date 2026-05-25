@@ -26,6 +26,7 @@ function displayBooks() {
 
   books.forEach((book, index) => {
     const div = document.createElement("div")
+    div.className = "book-item"
 
     const img = document.createElement("img")
     img.src = book.image
@@ -33,6 +34,7 @@ function displayBooks() {
 
     const p = document.createElement("p")
     p.textContent = book.isbn
+    p.className = "book-isbn"
 
     div.appendChild(img)
     div.appendChild(p)
@@ -54,11 +56,10 @@ function displayBooks() {
     list.appendChild(div)
   })
 }
-
   
     list.appendChild(img)
-  })
-}
+
+
 
 displayBooks()
 
