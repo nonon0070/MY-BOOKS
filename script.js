@@ -21,15 +21,18 @@ let books = JSON.parse(localStorage.getItem("books")) || []
 function saveBooks() {
   localStorage.setItem("books", JSON.stringify(books))
 }
-
 function displayBooks() {
   list.innerHTML = ""
 
   books.forEach((book, index) => {
     const img = document.createElement("img")
 
-    img.src = book.image || "https://ndlsearch.ndl.go.jp/thumbnail/" + book.isbn + ".jpg"
+    img.src = book.image || "https://ndlsearch.ndl.go.jp/thumbnail/" + book.isbn
     img.className = "book-cover"
+
+    img.onerror = () => {
+      img.src = "https://ndlsearch.ndl.go.jp/thumbnail/" + book.isbn
+    }
 
     img.onclick = () => {
       const ok = confirm("この本を削除しますか？")
@@ -73,11 +76,13 @@ navSettingButton.onclick = () => {
 }
 
 async function addBookByISBN(isbn) {
+  isbn = isbn.trim()
+
   const response = await fetch("https://api.openbd.jp/v1/get?isbn=" + isbn)
   const data = await response.json()
 
   let title = "タイトル不明"
-  let image = "https://ndlsearch.ndl.go.jp/thumbnail/" + isbn + ".jpg"
+  let image = "https://ndlsearch.ndl.go.jp/thumbnail/" + isbn
 
   if (data[0] !== null) {
     title = data[0].summary.title
