@@ -107,15 +107,7 @@ async function addBookByISBN(isbn) {
   displayBooks()
 }
 
-  const book = {
-    isbn: isbn,
-    title: title,
-    image: image
-  }
-
-  books.push(book)
-  saveBooks()
-  displayBooks()
+ 
 
 
 button.onclick = async () => {
