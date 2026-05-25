@@ -59,15 +59,19 @@ button {
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
-
 .book-cover {
   width: 100%;
   aspect-ratio: 2 / 3;
-  object-fit: cover;
-  border-radius: 8px;
+  object-fit: contain;
   background-color: #ddd;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  display: block;
 }
+
+.book-item {
+  width: 100%;
+}
+
 
 #bottomNav {
   position: fixed;
