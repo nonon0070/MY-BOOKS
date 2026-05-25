@@ -100,8 +100,8 @@ scanButton.onclick = async () => {
 
         await addBookByISBN(isbn)
 
-        scanPage.style.display = "none"
-        shelfPage.style.display = "block"
+        showPage(shelfPage)
+
       }
     }
   )
