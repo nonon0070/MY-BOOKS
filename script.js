@@ -16,11 +16,20 @@ function saveBooks() {
 function displayBooks() {
   list.innerHTML = ""
 
-  books.forEach((book) => {
+  books.forEach((book, index) => {
     const img = document.createElement("img")
     img.src = book.image
     img.className = "book-cover"
+  
+    img.onclick = () => {
 
+  books.splice(index, 1)
+
+  saveBooks()
+
+  displayBooks()
+}
+  
     list.appendChild(img)
   })
 }
