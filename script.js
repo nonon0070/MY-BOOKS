@@ -1,10 +1,19 @@
+const searchPage = document.getElementById("searchPage")
 const shelfPage = document.getElementById("shelfPage")
-const scanPage = document.getElementById("scanPage")
+const statsPage = document.getElementById("statsPage")
+const settingsPage = document.getElementById("settingsPage")
 
-const goScanButton = document.getElementById("goScanButton")
-const backButton = document.getElementById("backButton")
+const navSearchButton = document.getElementById("navSearchButton")
+const navShelfButton = document.getElementById("navShelfButton")
+const navStatsButton = document.getElementById("navStatsButton")
+const navSettingButton = document.getElementById("navSettingButton")
+
 const scanButton = document.getElementById("scanButton")
 const video = document.getElementById("video")
+
+const input = document.getElementById("titleInput")
+const button = document.getElementById("addButton")
+
 const list = document.getElementById("bookList")
 
 let books = JSON.parse(localStorage.getItem("books")) || []
@@ -42,40 +51,30 @@ function displayBooks() {
 
 displayBooks()
 
-goScanButton.onclick = () => {
+function showPage(page) {
+
+  searchPage.style.display = "none"
   shelfPage.style.display = "none"
-  scanPage.style.display = "block"
+  statsPage.style.display = "none"
+  settingsPage.style.display = "none"
+
+  page.style.display = "block"
 }
 
-backButton.onclick = () => {
-  scanPage.style.display = "none"
-  shelfPage.style.display = "block"
+navSearchButton.onclick = () => {
+  showPage(searchPage)
 }
 
-async function addBookByISBN(isbn) {
-  isbn = isbn.replace(/[^0-9X]/gi, "")
+navShelfButton.onclick = () => {
+  showPage(shelfPage)
+}
 
-  if (!isbn.startsWith("978") && !isbn.startsWith("979")) {
-    return
-  }
+navStatsButton.onclick = () => {
+  showPage(statsPage)
+}
 
-  if (books.some((book) => book.isbn === isbn)) {
-    return
-  }
-
-  const image =
-    "https://books.google.com/books/content?vid=ISBN" +
-    isbn +
-    "&printsec=frontcover&img=1&zoom=1&source=gbs_api"
-
-  const newBook = {
-    isbn: isbn,
-    image: image
-  }
-
-  books.push(newBook)
-  saveBooks()
-  displayBooks()
+navSettingButton.onclick = () => {
+  showPage(settingsPage)
 }
 
 const codeReader = new ZXing.BrowserBarcodeReader()

@@ -9,51 +9,62 @@
 
 <body>
 
-<section id="shelfPage">
+  <section id="searchPage">
 
-  <h1>本棚</h1>
+    <h1>本検索</h1>
 
-  <button id="goScanButton">
-    ＋ 本を追加
-  </button>
+    <input id="titleInput" placeholder="ISBNを入力">
 
-  <br><br>
+    <button id="addButton">
+      ISBNで追加
+    </button>
 
-  <input id="titleInput" placeholder="ISBNを入力">
+    <br><br>
 
-<button id="addButton">
-  ISBNで追加
-</button>
+    <video id="video" width="300"></video>
 
-<br><br>
+    <br><br>
 
-  <div id="bookList"></div>
+    <button id="scanButton">
+      バーコード読み取り
+    </button>
 
-</section>
+  </section>
 
-<section id="scanPage" style="display: none;">
+  <section id="shelfPage" style="display: none;">
 
-  <h1>バーコード読み取り</h1>
+    <h1>本棚</h1>
 
-  <button id="backButton">
-    ← 本棚に戻る
-  </button>
+    <div id="bookList"></div>
 
-  <br><br>
+  </section>
 
-  <video id="video" width="300"></video>
+  <section id="statsPage" style="display: none;">
 
-  <br><br>
+    <h1>月間読書本</h1>
 
-  <button id="scanButton">
-    読み取り開始
-  </button>
+    <p>ここは後で作る</p>
 
-</section>
-  
+  </section>
+
+  <section id="settingsPage" style="display: none;">
+
+    <h1>設定</h1>
+
+    <p>ここは後で作る</p>
+
+  </section>
+
+  <nav id="bottomNav">
+    <button id="navSearchButton">🔍</button>
+    <button id="navShelfButton">📚</button>
+    <button id="navStatsButton">📊</button>
+    <button id="navSettingButton">⚙️</button>
+  </nav>
 
   <script src="https://unpkg.com/@zxing/library@latest"></script>
   <script src="script.js"></script>
 
 </body>
+
 </html>
