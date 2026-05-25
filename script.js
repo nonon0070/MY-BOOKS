@@ -21,6 +21,7 @@ let books = JSON.parse(localStorage.getItem("books")) || []
 function saveBooks() {
   localStorage.setItem("books", JSON.stringify(books))
 }
+
 function displayBooks() {
   list.innerHTML = ""
 
@@ -47,24 +48,15 @@ function displayBooks() {
       }
 
       books.splice(index, 1)
-
       saveBooks()
-
       displayBooks()
     }
 
     list.appendChild(div)
   })
 }
-  
-    list.appendChild(img)
-
-
-
-displayBooks()
 
 function showPage(page) {
-
   searchPage.style.display = "none"
   shelfPage.style.display = "none"
   statsPage.style.display = "none"
@@ -89,38 +81,6 @@ navSettingButton.onclick = () => {
   showPage(settingsPage)
 }
 
-const codeReader = new ZXing.BrowserBarcodeReader()
-
-scanButton.onclick = async () => {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: {
-      facingMode: "environment"
-    }
-  })
-
-  video.srcObject = stream
-  video.play()
-
-  codeReader.decodeFromVideoDevice(
-    null,
-    video,
-    async (result, error) => {
-      if (result) {
-        const isbn = result.text
-        alert("読み取ったコード: " + isbn)
-
-        codeReader.reset()
-
-        await addBookByISBN(isbn)
-
-        showPage(shelfPage)
-
-      }
-    }
-  )
-}
-
-
 async function addBookByISBN(isbn) {
   const book = {
     isbn: isbn,
@@ -128,13 +88,14 @@ async function addBookByISBN(isbn) {
   }
 
   books.push(book)
-
   saveBooks()
   displayBooks()
+
+  alert("本棚に追加しました")
 }
 
 button.onclick = async () => {
-  const isbn = input.value
+  const isbn = input.value.trim()
 
   if (isbn === "") {
     alert("ISBNを入力してください")
@@ -144,6 +105,43 @@ button.onclick = async () => {
   await addBookByISBN(isbn)
 
   input.value = ""
-
   showPage(shelfPage)
 }
+
+const codeReader = new ZXing.BrowserBarcodeReader()
+
+scanButton.onclick = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "environment"
+      }
+    })
+
+    video.srcObject = stream
+    video.play()
+
+    codeReader.decodeFromVideoDevice(
+      null,
+      video,
+      async (result, error) => {
+        if (result) {
+          const isbn = result.text
+
+          alert("読み取ったコード: " + isbn)
+
+          codeReader.reset()
+
+          await addBookByISBN(isbn)
+
+          showPage(shelfPage)
+        }
+      }
+    )
+  } catch (error) {
+    alert("カメラを起動できませんでした")
+    console.log(error)
+  }
+}
+
+displayBooks()
