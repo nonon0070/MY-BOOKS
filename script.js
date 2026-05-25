@@ -87,16 +87,41 @@ async function findWorkingCover(isbn, openbdUrls) {
     }
   })
 
+  // openBD系
   candidates.push("https://cover.openbd.jp/" + isbn + ".jpg")
   candidates.push("https://cover.openbd.jp/" + isbn)
+
+  // 前のコードで成功していた Google Books の直接表紙URL
+  candidates.push(
+    "https://books.google.com/books/content?vid=ISBN" +
+      isbn +
+      "&printsec=frontcover&img=1&zoom=1&source=gbs_api"
+  )
+
+  candidates.push(
+    "https://books.google.com/books/content?vid=ISBN" +
+      isbn +
+      "&printsec=frontcover&img=1&zoom=0&source=gbs_api"
+  )
+
+  candidates.push(
+    "https://books.google.com/books/content?vid=ISBN" +
+      isbn +
+      "&printsec=frontcover&img=1&zoom=2&source=gbs_api"
+  )
+
+  // Open Library
   candidates.push("https://covers.openlibrary.org/b/isbn/" + isbn + "-L.jpg?default=false")
   candidates.push("https://covers.openlibrary.org/b/isbn/" + isbn + "-M.jpg?default=false")
+
+  // NDL
   candidates.push("https://ndlsearch.ndl.go.jp/thumbnail/" + isbn)
 
   const uniqueCandidates = [...new Set(candidates)]
 
   for (const url of uniqueCandidates) {
     const ok = await isImageLoadable(url)
+
     console.log("表紙候補:", url, ok)
 
     if (ok) {
@@ -154,7 +179,7 @@ function displayBooks() {
 }
 
 async function addBookByISBN(isbn) {
-  isbn = isbn.trim()
+  isbn = isbn.replace(/[^0-9X]/gi, "")
 
   if (isbn === "") {
     alert("ISBNを入力してください")
