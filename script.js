@@ -36,14 +36,7 @@ const button = document.getElementById("addButton")
 
 const list = document.getElementById("bookList")
 const backToShelfButton = document.getElementById("backToShelfButton")
-const detailImage = document.getElementById("detailImage")
-const detailAuthor = document.getElementById("detailAuthor")
-const detailPublisher = document.getElementById("detailPublisher")
-const detailPrice = document.getElementById("detailPrice")
-const detailPages = document.getElementById("detailPages")
-const detailRegisteredAt = document.getElementById("detailRegisteredAt")
-const detailDeleteButton = document.getElementById("detailDeleteButton")
-
+const detailContent = document.getElementById("detailContent")
 
 // =====================
 // 本棚データ
@@ -231,7 +224,7 @@ function formatDate(dateText) {
   return date.toLocaleDateString("ja-JP")
 }
 
-function showBookDetail(book, index) {
+BookDetail(book, index) {
   selectedBookIndex = index
 
   detailImage.src = book.image
@@ -240,6 +233,63 @@ function showBookDetail(book, index) {
   detailPrice.textContent = "値段：" + (book.price ? book.price + "円" : "不明")
   detailPages.textContent = "ページ数：" + (book.pageCount ? book.pageCount + "ページ" : "不明")
   detailRegisteredAt.textContent = "登録日：" + formatDate(book.registeredAt)
+
+  showPage(detailPage)
+}
+
+
+let selectedBookIndex = null
+
+function formatDate(dateText) {
+  if (!dateText) {
+    return "不明"
+  }
+
+  const date = new Date(dateText)
+
+  if (Number.isNaN(date.getTime())) {
+    return "不明"
+  }
+
+  return date.toLocaleDateString("ja-JP")
+}
+
+function showBookDetail(book, index) {
+  selectedBookIndex = index
+
+  detailContent.innerHTML = `
+    <div id="bookDetailBox">
+      <img id="detailImage" src="${book.image}">
+
+      <div id="detailInfo">
+        <p>著者 / イラストレーター：${book.author || "不明"}</p>
+        <p>出版社：${book.publisher || "不明"}</p>
+        <p>値段：${book.price ? book.price + "円" : "不明"}</p>
+        <p>ページ数：${book.pageCount ? book.pageCount + "ページ" : "不明"}</p>
+      </div>
+    </div>
+
+    <p id="detailRegisteredAt">登録日：${formatDate(book.registeredAt)}</p>
+
+    <button id="detailDeleteButton">この本を削除</button>
+  `
+
+  const detailDeleteButton = document.getElementById("detailDeleteButton")
+
+  detailDeleteButton.onclick = () => {
+    const ok = confirm("この本を削除しますか？")
+
+    if (!ok) {
+      return
+    }
+
+    books.splice(selectedBookIndex, 1)
+    saveBooks()
+    displayBooks()
+
+    selectedBookIndex = null
+    showPage(shelfPage)
+  }
 
   showPage(detailPage)
 }
