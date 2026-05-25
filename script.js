@@ -7,7 +7,6 @@ const shelfPage = document.getElementById("shelfPage")
 const statsPage = document.getElementById("statsPage")
 const settingsPage = document.getElementById("settingsPage")
 const detailPage = document.getElementById("detailPage")
-const detailPage = document.getElementById("detailPage")
 
 
 // =====================
@@ -74,7 +73,6 @@ function showPage(page) {
 
   page.style.display = "block"
 }
-s
 // =====================
 // 表紙画像URLの補助関数
 // =====================
