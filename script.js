@@ -82,7 +82,7 @@ async function addBookByISBN(isbn) {
   const data = await response.json()
 
   let title = "タイトル不明"
-  let image = "https://ndlsearch.ndl.go.jp/thumbnail/" + isbn
+  let image = ""
 
   if (data[0] !== null) {
     title = data[0].summary.title
@@ -91,6 +91,10 @@ async function addBookByISBN(isbn) {
       image = data[0].summary.cover
     }
   }
+
+  console.log("ISBN:", isbn)
+  console.log("タイトル:", title)
+  console.log("画像URL:", image)
 
   const book = {
     isbn: isbn,
@@ -102,6 +106,17 @@ async function addBookByISBN(isbn) {
   saveBooks()
   displayBooks()
 }
+
+  const book = {
+    isbn: isbn,
+    title: title,
+    image: image
+  }
+
+  books.push(book)
+  saveBooks()
+  displayBooks()
+
 
 button.onclick = async () => {
   const isbn = input.value.trim()
