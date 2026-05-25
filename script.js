@@ -107,3 +107,31 @@ scanButton.onclick = async () => {
     }
   )
 }
+
+
+async function addBookByISBN(isbn) {
+  const book = {
+    isbn: isbn,
+    image: "https://ndlsearch.ndl.go.jp/thumbnail/" + isbn + ".jpg"
+  }
+
+  books.push(book)
+
+  saveBooks()
+  displayBooks()
+}
+
+button.onclick = async () => {
+  const isbn = input.value
+
+  if (isbn === "") {
+    alert("ISBNを入力してください")
+    return
+  }
+
+  await addBookByISBN(isbn)
+
+  input.value = ""
+
+  showPage(shelfPage)
+}
