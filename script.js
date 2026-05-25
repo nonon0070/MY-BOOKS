@@ -29,15 +29,22 @@ function displayBooks() {
     const div = document.createElement("div")
     div.className = "book-item"
 
-    const img = document.createElement("img")
-    img.src = book.image
-    img.className = "book-cover"
+    if (book.image) {
+      const img = document.createElement("img")
+      img.src = book.image
+      img.className = "book-cover"
+      div.appendChild(img)
+    } else {
+      const noImage = document.createElement("div")
+      noImage.className = "no-cover"
+      noImage.textContent = "表紙なし"
+      div.appendChild(noImage)
+    }
 
     const p = document.createElement("p")
-    p.textContent = book.isbn
+    p.textContent = book.title || book.isbn
     p.className = "book-isbn"
 
-    div.appendChild(img)
     div.appendChild(p)
 
     div.onclick = () => {
@@ -82,16 +89,26 @@ navSettingButton.onclick = () => {
 }
 
 async function addBookByISBN(isbn) {
+  const response = await fetch("https://api.openbd.jp/v1/get?isbn=" + isbn)
+  const data = await response.json()
+
+  let image = ""
+  let title = "タイトル不明"
+
+  if (data[0] !== null) {
+    title = data[0].summary.title
+    image = data[0].summary.cover
+  }
+
   const book = {
     isbn: isbn,
-    image: "https://ndlsearch.ndl.go.jp/thumbnail/" + isbn + ".jpg"
+    title: title,
+    image: image
   }
 
   books.push(book)
   saveBooks()
   displayBooks()
-
-  alert("本棚に追加しました")
 }
 
 button.onclick = async () => {
