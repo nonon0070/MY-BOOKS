@@ -6,6 +6,7 @@ const searchPage = document.getElementById("searchPage")
 const shelfPage = document.getElementById("shelfPage")
 const statsPage = document.getElementById("statsPage")
 const settingsPage = document.getElementById("settingsPage")
+const detailPage = document.getElementById("detailPage")
 
 
 // =====================
@@ -34,6 +35,14 @@ const button = document.getElementById("addButton")
 // =====================
 
 const list = document.getElementById("bookList")
+const backToShelfButton = document.getElementById("backToShelfButton")
+const detailImage = document.getElementById("detailImage")
+const detailAuthor = document.getElementById("detailAuthor")
+const detailPublisher = document.getElementById("detailPublisher")
+const detailPrice = document.getElementById("detailPrice")
+const detailPages = document.getElementById("detailPages")
+const detailRegisteredAt = document.getElementById("detailRegisteredAt")
+const detailDeleteButton = document.getElementById("detailDeleteButton")
 
 
 // =====================
@@ -60,11 +69,11 @@ function showPage(page) {
   shelfPage.style.display = "none"
   statsPage.style.display = "none"
   settingsPage.style.display = "none"
+  detailPage.style.display = "none"
 
   page.style.display = "block"
 }
-
-
+s
 // =====================
 // 表紙画像URLの補助関数
 // =====================
@@ -102,6 +111,31 @@ function isImageLoadable(url) {
 
 // openBDのデータの中から画像URLっぽいものを集める
 function collectUrlsFromOpenBD(bookData) {
+  function getPriceFromOpenBD(bookData) {
+  const prices = bookData?.onix?.ProductSupply?.SupplyDetail?.Price
+
+  if (Array.isArray(prices) && prices[0] && prices[0].PriceAmount) {
+    return Number(prices[0].PriceAmount)
+  }
+
+  return ""
+}
+
+function getPageCountFromOpenBD(bookData) {
+  const extents = bookData?.onix?.DescriptiveDetail?.Extent
+
+  if (Array.isArray(extents)) {
+    const pageData = extents.find((extent) => {
+      return extent.ExtentType === "11" || extent.ExtentUnit === "03"
+    })
+
+    if (pageData && pageData.ExtentValue) {
+      return Number(pageData.ExtentValue)
+    }
+  }
+
+  return ""
+}
   const urls = []
   const text = JSON.stringify(bookData)
   const matches = text.match(/https?:\/\/[^"]+/g) || []
@@ -182,6 +216,36 @@ async function findWorkingCover(isbn, openbdUrls) {
 // 本棚表示
 // =====================
 
+let selectedBookIndex = null
+
+function formatDate(dateText) {
+  if (!dateText) {
+    return "不明"
+  }
+
+  const date = new Date(dateText)
+
+  if (Number.isNaN(date.getTime())) {
+    return "不明"
+  }
+
+  return date.toLocaleDateString("ja-JP")
+}
+
+function showBookDetail(book, index) {
+  selectedBookIndex = index
+
+  detailImage.src = book.image
+  detailAuthor.textContent = "著者 / イラストレーター：" + (book.author || "不明")
+  detailPublisher.textContent = "出版社：" + (book.publisher || "不明")
+  detailPrice.textContent = "値段：" + (book.price ? book.price + "円" : "不明")
+  detailPages.textContent = "ページ数：" + (book.pageCount ? book.pageCount + "ページ" : "不明")
+  detailRegisteredAt.textContent = "登録日：" + formatDate(book.registeredAt)
+
+  showPage(detailPage)
+}
+
+
 // books配列の中身を本棚ページに表示する
 function displayBooks() {
   list.innerHTML = ""
@@ -216,16 +280,8 @@ function displayBooks() {
     // 今は本をクリックすると削除確認を出す
     // 後でここを「詳細ページを開く」に変更する予定
     div.onclick = () => {
-      const ok = confirm("この本を削除しますか？")
-
-      if (!ok) {
-        return
-      }
-
-      books.splice(index, 1)
-      saveBooks()
-      displayBooks()
-    }
+  showBookDetail(book, index)
+}
 
     list.appendChild(div)
   })
@@ -253,7 +309,11 @@ async function addBookByISBN(isbn) {
   }
 
   let title = "タイトル不明"
-  let openbdUrls = []
+let author = "不明"
+let publisher = "不明"
+let price = ""
+let pageCount = ""
+let openbdUrls = []
 
   try {
     const response = await fetch("https://api.openbd.jp/v1/get?isbn=" + isbn)
@@ -265,8 +325,21 @@ async function addBookByISBN(isbn) {
       const bookData = data[0]
 
       if (bookData.summary && bookData.summary.title) {
-        title = bookData.summary.title
-      }
+  title = bookData.summary.title
+}
+
+if (bookData.summary && bookData.summary.author) {
+  author = bookData.summary.author
+}
+
+if (bookData.summary && bookData.summary.publisher) {
+  publisher = bookData.summary.publisher
+}
+
+price = getPriceFromOpenBD(bookData)
+pageCount = getPageCountFromOpenBD(bookData)
+
+openbdUrls = collectUrlsFromOpenBD(bookData)
 
       openbdUrls = collectUrlsFromOpenBD(bookData)
     }
@@ -283,11 +356,16 @@ async function addBookByISBN(isbn) {
   console.log("最終画像URL:", image)
 
   const book = {
-    isbn: isbn,
-    title: title,
-    image: image
-  }
-
+  isbn: isbn,
+  title: title,
+  image: image,
+  author: author,
+  publisher: publisher,
+  price: price,
+  pageCount: pageCount,
+  registeredAt: new Date().toISOString()
+}
+ 
   books.push(book)
   saveBooks()
   displayBooks()
@@ -312,6 +390,29 @@ navStatsButton.onclick = () => {
 
 navSettingButton.onclick = () => {
   showPage(settingsPage)
+}
+
+backToShelfButton.onclick = () => {
+  showPage(shelfPage)
+}
+
+detailDeleteButton.onclick = () => {
+  if (selectedBookIndex === null) {
+    return
+  }
+
+  const ok = confirm("この本を削除しますか？")
+
+  if (!ok) {
+    return
+  }
+
+  books.splice(selectedBookIndex, 1)
+  saveBooks()
+  displayBooks()
+
+  selectedBookIndex = null
+  showPage(shelfPage)
 }
 
 

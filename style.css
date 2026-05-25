@@ -102,3 +102,47 @@ button {
   font-size: 24px;
   background-color: transparent;
 }
+
+#detailPage {
+  padding: 24px 24px 90px;
+}
+
+#backToShelfButton {
+  margin-bottom: 20px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+#bookDetailBox {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+#detailImage {
+  width: 35%;
+  max-width: 140px;
+  aspect-ratio: 2 / 3;
+  object-fit: contain;
+}
+
+#detailInfo {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+#detailInfo p {
+  margin: 0 0 8px;
+}
+
+#detailRegisteredAt {
+  margin-top: 24px;
+  font-size: 14px;
+}
+
+#detailDeleteButton {
+  margin-top: 16px;
+  padding: 10px 14px;
+  font-size: 14px;
+}
