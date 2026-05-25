@@ -26,28 +26,12 @@ function displayBooks() {
   list.innerHTML = ""
 
   books.forEach((book, index) => {
-    const div = document.createElement("div")
-    div.className = "book-item"
+    const img = document.createElement("img")
 
-    if (book.image) {
-      const img = document.createElement("img")
-      img.src = book.image
-      img.className = "book-cover"
-      div.appendChild(img)
-    } else {
-      const noImage = document.createElement("div")
-      noImage.className = "no-cover"
-      noImage.textContent = "表紙なし"
-      div.appendChild(noImage)
-    }
+    img.src = book.image || "https://ndlsearch.ndl.go.jp/thumbnail/" + book.isbn + ".jpg"
+    img.className = "book-cover"
 
-    const p = document.createElement("p")
-    p.textContent = book.title || book.isbn
-    p.className = "book-isbn"
-
-    div.appendChild(p)
-
-    div.onclick = () => {
+    img.onclick = () => {
       const ok = confirm("この本を削除しますか？")
 
       if (!ok) {
@@ -59,7 +43,7 @@ function displayBooks() {
       displayBooks()
     }
 
-    list.appendChild(div)
+    list.appendChild(img)
   })
 }
 
@@ -145,7 +129,7 @@ scanButton.onclick = async () => {
         if (result) {
           const isbn = result.text
 
-          alert("読み取ったコード: " + isbn)
+          
 
           codeReader.reset()
 
