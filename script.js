@@ -78,17 +78,36 @@ navSettingButton.onclick = () => {
 async function addBookByISBN(isbn) {
   isbn = isbn.trim()
 
-  const response = await fetch("https://api.openbd.jp/v1/get?isbn=" + isbn)
-  const data = await response.json()
-
   let title = "タイトル不明"
   let image = ""
 
-  if (data[0] !== null) {
-    title = data[0].summary.title
+  // まず openBD で本情報を取る
+  const openbdResponse = await fetch("https://api.openbd.jp/v1/get?isbn=" + isbn)
+  const openbdData = await openbdResponse.json()
 
-    if (data[0].summary.cover) {
-      image = data[0].summary.cover
+  if (openbdData[0] !== null) {
+    title = openbdData[0].summary.title
+
+    if (openbdData[0].summary.cover) {
+      image = openbdData[0].summary.cover
+    }
+  }
+
+  // openBDで表紙が取れなかったら Google Books で探す
+  if (image === "") {
+    const googleResponse = await fetch("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn)
+    const googleData = await googleResponse.json()
+
+    if (googleData.items && googleData.items.length > 0) {
+      const bookInfo = googleData.items[0].volumeInfo
+
+      if (bookInfo.title) {
+        title = bookInfo.title
+      }
+
+      if (bookInfo.imageLinks && bookInfo.imageLinks.thumbnail) {
+        image = bookInfo.imageLinks.thumbnail.replace("http://", "https://")
+      }
     }
   }
 
