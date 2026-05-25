@@ -180,6 +180,10 @@ function displayBooks() {
 
 async function addBookByISBN(isbn) {
   isbn = isbn.replace(/[^0-9X]/gi, "")
+  if (books.some((book) => book.isbn === isbn)) {
+  alert("この本はすでに登録済みです")
+  return
+}
 
   if (isbn === "") {
     alert("ISBNを入力してください")
