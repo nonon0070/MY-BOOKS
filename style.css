@@ -59,12 +59,14 @@ button {
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
+
 .book-cover {
   width: 100%;
   aspect-ratio: 2 / 3;
   object-fit: contain;
-  background-color: #ddd;
-  border-radius: 8px;
+  background-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
   display: block;
 }
 
