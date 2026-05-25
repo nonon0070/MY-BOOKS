@@ -204,6 +204,39 @@ function getPageCountFromOpenBD(bookData) {
 // =====================
 
 function formatDate(dateText) {
+
+  function formatDateForInput(dateText) {
+  if (!dateText) {
+    return ""
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateText)) {
+    return dateText
+  }
+
+  const date = new Date(dateText)
+
+  if (Number.isNaN(date.getTime())) {
+    return ""
+  }
+
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+
+  return year + "-" + month + "-" + day
+}
+
+function getTodayDateValue() {
+  const date = new Date()
+
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+
+  return year + "-" + month + "-" + day
+}
+
   if (!dateText) {
     return "不明"
   }
@@ -232,12 +265,29 @@ function showBookDetail(book, index) {
       </div>
     </div>
 
-    <p id="detailRegisteredAt">登録日：${formatDate(book.registeredAt)}</p>
+    <div id="detailRegisteredAtBox">
+  <label for="detailRegisteredAtInput">登録日：</label>
+  <input
+    id="detailRegisteredAtInput"
+    type="date"
+    value="${formatDateForInput(book.registeredAt)}"
+  >
+</div>
 
     <button id="detailDeleteButton">この本を削除</button>
   `
 
   const detailDeleteButton = document.getElementById("detailDeleteButton")
+const detailRegisteredAtInput = document.getElementById("detailRegisteredAtInput")
+
+detailRegisteredAtInput.onchange = () => {
+  if (selectedBookIndex === null) {
+    return
+  }
+
+  books[selectedBookIndex].registeredAt = detailRegisteredAtInput.value
+  saveBooks()
+}
 
   detailDeleteButton.onclick = () => {
     const ok = confirm("この本を削除しますか？")
@@ -371,7 +421,7 @@ async function addBookByISBN(isbn) {
     publisher: publisher,
     price: price,
     pageCount: pageCount,
-    registeredAt: new Date().toISOString()
+    registeredAt: getTodayDateValue()
   }
 
   books.push(book)
@@ -477,4 +527,4 @@ scanButton.onclick = async () => {
 // 初期表示
 // =====================
 
-displayBooks()
+displayBooks() 
