@@ -21,7 +21,13 @@ function displayBooks() {
     img.src = book.image
     img.className = "book-cover"
   
-    img.onclick = () => {
+   img.onclick = () => {
+
+  const ok = confirm("この本を削除しますか？")
+
+  if (!ok) {
+    return
+  }
 
   books.splice(index, 1)
 
