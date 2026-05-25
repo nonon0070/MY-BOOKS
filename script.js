@@ -21,20 +21,27 @@ let books = JSON.parse(localStorage.getItem("books")) || []
 function saveBooks() {
   localStorage.setItem("books", JSON.stringify(books))
 }
+
 function displayBooks() {
   list.innerHTML = ""
 
   books.forEach((book, index) => {
-    const img = document.createElement("img")
+    const div = document.createElement("div")
+    div.className = "book-item"
 
-    img.src = book.image || "https://ndlsearch.ndl.go.jp/thumbnail/" + book.isbn
-    img.onerror = () => {
-  img.src = "https://ndlsearch.ndl.go.jp/thumbnail/" + book.isbn
-}
-    img.className = "book-cover"
+    if (book.image) {
+      const img = document.createElement("img")
+      img.src = book.image
+      img.className = "book-cover"
+      div.appendChild(img)
+    } else {
+      const noCover = document.createElement("div")
+      noCover.className = "book-cover"
+      noCover.textContent = "表紙なし"
+      div.appendChild(noCover)
+    }
 
-
-    img.onclick = () => {
+    div.onclick = () => {
       const ok = confirm("この本を削除しますか？")
 
       if (!ok) {
@@ -46,9 +53,10 @@ function displayBooks() {
       displayBooks()
     }
 
-    list.appendChild(img)
+    list.appendChild(div)
   })
 }
+
 
 function showPage(page) {
   searchPage.style.display = "none"
@@ -78,35 +86,40 @@ navSettingButton.onclick = () => {
 async function addBookByISBN(isbn) {
   isbn = isbn.trim()
 
+  const response = await fetch("https://api.openbd.jp/v1/get?isbn=" + isbn)
+  const data = await response.json()
+
+  console.log("openBD全部:", data)
+  console.log(
+  "openBD内のURL一覧:",
+  JSON.stringify(data).match(/https?:\/\/[^"]+/g)
+)
+
+
   let title = "タイトル不明"
   let image = ""
 
-  // まず openBD で本情報を取る
-  const openbdResponse = await fetch("https://api.openbd.jp/v1/get?isbn=" + isbn)
-  const openbdData = await openbdResponse.json()
-
-  if (openbdData[0] !== null) {
-    title = openbdData[0].summary.title
-
-    if (openbdData[0].summary.cover) {
-      image = openbdData[0].summary.cover
+  if (data[0] !== null) {
+    if (data[0].summary && data[0].summary.title) {
+      title = data[0].summary.title
     }
-  }
 
-  // openBDで表紙が取れなかったら Google Books で探す
-  if (image === "") {
-    const googleResponse = await fetch("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn)
-    const googleData = await googleResponse.json()
+    if (data[0].summary && data[0].summary.cover) {
+      image = data[0].summary.cover
+    }
 
-    if (googleData.items && googleData.items.length > 0) {
-      const bookInfo = googleData.items[0].volumeInfo
+    if (image === "" && data[0].onix) {
+      const collateralDetail = data[0].onix.CollateralDetail
 
-      if (bookInfo.title) {
-        title = bookInfo.title
-      }
-
-      if (bookInfo.imageLinks && bookInfo.imageLinks.thumbnail) {
-        image = bookInfo.imageLinks.thumbnail.replace("http://", "https://")
+      if (
+        collateralDetail &&
+        collateralDetail.SupportingResource &&
+        collateralDetail.SupportingResource[0] &&
+        collateralDetail.SupportingResource[0].ResourceVersion &&
+        collateralDetail.SupportingResource[0].ResourceVersion[0] &&
+        collateralDetail.SupportingResource[0].ResourceVersion[0].ResourceLink
+      ) {
+        image = collateralDetail.SupportingResource[0].ResourceVersion[0].ResourceLink
       }
     }
   }
@@ -125,8 +138,6 @@ async function addBookByISBN(isbn) {
   saveBooks()
   displayBooks()
 }
-
- 
 
 
 button.onclick = async () => {
