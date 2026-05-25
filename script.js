@@ -110,6 +110,22 @@ async function addBookByISBN(isbn) {
   displayBooks()
 }
 
+button.onclick = async () => {
+  console.log("ISBN追加ボタンが押されました")
+
+  const isbn = input.value.trim()
+
+  if (isbn === "") {
+    alert("ISBNを入力してください")
+    return
+  }
+
+  await addBookByISBN(isbn)
+
+  input.value = ""
+  showPage(shelfPage)
+}
+
 const codeReader = new ZXing.BrowserBarcodeReader()
 
 scanButton.onclick = async () => {
