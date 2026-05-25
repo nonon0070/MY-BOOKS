@@ -202,10 +202,21 @@ function getPageCountFromOpenBD(bookData) {
 // =====================
 // 詳細ページ
 // =====================
-
 function formatDate(dateText) {
+  if (!dateText) {
+    return "不明"
+  }
 
-  function formatDateForInput(dateText) {
+  const date = new Date(dateText)
+
+  if (Number.isNaN(date.getTime())) {
+    return "不明"
+  }
+
+  return date.toLocaleDateString("ja-JP")
+}
+
+function formatDateForInput(dateText) {
   if (!dateText) {
     return ""
   }
@@ -235,19 +246,6 @@ function getTodayDateValue() {
   const day = String(date.getDate()).padStart(2, "0")
 
   return year + "-" + month + "-" + day
-}
-
-  if (!dateText) {
-    return "不明"
-  }
-
-  const date = new Date(dateText)
-
-  if (Number.isNaN(date.getTime())) {
-    return "不明"
-  }
-
-  return date.toLocaleDateString("ja-JP")
 }
 
 function showBookDetail(book, index) {
