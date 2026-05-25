@@ -29,19 +29,17 @@ function displayBooks() {
     const div = document.createElement("div")
     div.className = "book-item"
 
-    const img = document.createElement("img")
-    img.src = book.image
-    img.className = "book-cover"
-
-    img.onerror = () => {
+    if (book.image) {
+      const img = document.createElement("img")
+      img.src = book.image
+      img.className = "book-cover"
+      div.appendChild(img)
+    } else {
       const noCover = document.createElement("div")
       noCover.className = "book-cover"
       noCover.textContent = "表紙なし"
-
-      div.replaceChild(noCover, img)
+      div.appendChild(noCover)
     }
-
-    div.appendChild(img)
 
     div.onclick = () => {
       const ok = confirm("この本を削除しますか？")
@@ -84,7 +82,6 @@ navStatsButton.onclick = () => {
 navSettingButton.onclick = () => {
   showPage(settingsPage)
 }
-
 async function addBookByISBN(isbn) {
   isbn = isbn.trim()
 
@@ -92,17 +89,22 @@ async function addBookByISBN(isbn) {
   const data = await response.json()
 
   let title = "タイトル不明"
+  let image = ""
 
   if (data[0] !== null) {
     if (data[0].summary && data[0].summary.title) {
       title = data[0].summary.title
+    }
+
+    if (data[0].summary && data[0].summary.cover) {
+      image = data[0].summary.cover
     }
   }
 
   const book = {
     isbn: isbn,
     title: title,
-    image: "https://cover.openbd.jp/" + isbn + ".jpg"
+    image: image
   }
 
   books.push(book)
@@ -126,7 +128,20 @@ button.onclick = async () => {
   showPage(shelfPage)
 }
 
-const codeReader = new ZXing.BrowserBarcodeReader()
+button.onclick = async () => {
+  const isbn = input.value.trim()
+
+  if (isbn === "") {
+    alert("ISBNを入力してください")
+    return
+  }
+
+  await addBookByISBN(isbn)
+
+  input.value = ""
+  showPage(shelfPage)
+}
+
 
 scanButton.onclick = async () => {
   try {
