@@ -95,6 +95,7 @@ scanButton.onclick = async () => {
     async (result, error) => {
       if (result) {
         const isbn = result.text
+        alert("読み取ったコード: " + isbn)
 
         codeReader.reset()
 
