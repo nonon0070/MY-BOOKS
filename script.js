@@ -76,12 +76,15 @@ async function addBookByISBN(isbn) {
   const response = await fetch("https://api.openbd.jp/v1/get?isbn=" + isbn)
   const data = await response.json()
 
-  let image = ""
   let title = "タイトル不明"
+  let image = "https://ndlsearch.ndl.go.jp/thumbnail/" + isbn + ".jpg"
 
   if (data[0] !== null) {
     title = data[0].summary.title
-    image = data[0].summary.cover
+
+    if (data[0].summary.cover) {
+      image = data[0].summary.cover
+    }
   }
 
   const book = {
