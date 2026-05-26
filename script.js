@@ -167,6 +167,9 @@ async function findWorkingCover(isbn, openbdUrls) {
   return ""
 }
 
+// =====================
+// openBDから追加情報を取る関数
+// =====================
 
 function getPriceFromOpenBD(bookData) {
   const prices = bookData?.onix?.ProductSupply?.SupplyDetail?.Price
@@ -183,12 +186,19 @@ function getPageCountFromOpenBD(bookData) {
 
   if (Array.isArray(extents)) {
     const pageData = extents.find((extent) => {
-      return extent.ExtentType === "11" || extent.ExtentUnit === "03"
+      return String(extent.ExtentType) === "11" || String(extent.ExtentUnit) === "03"
     })
 
     if (pageData && pageData.ExtentValue) {
       return Number(pageData.ExtentValue)
     }
+  }
+
+  const text = JSON.stringify(bookData)
+  const match = text.match(/"ExtentValue":"?(\d+)"?/)
+
+  if (match && match[1]) {
+    return Number(match[1])
   }
 
   return ""
@@ -245,13 +255,34 @@ function getIllustratorFromOpenBD(bookData) {
 }
 
 function getPublisherFromOpenBD(bookData) {
+  const publishers = bookData?.onix?.PublishingDetail?.Publisher
+
+  if (Array.isArray(publishers)) {
+    const mainPublisher = publishers.find((publisher) => {
+      return String(publisher.PublisherRole) === "01"
+    })
+
+    if (mainPublisher && mainPublisher.PublisherName) {
+      return mainPublisher.PublisherName
+    }
+
+    if (publishers[0] && publishers[0].PublisherName) {
+      return publishers[0].PublisherName
+    }
+  }
+
+  const imprints = bookData?.onix?.PublishingDetail?.Imprint
+
+  if (Array.isArray(imprints) && imprints[0] && imprints[0].ImprintName) {
+    return imprints[0].ImprintName
+  }
+
   if (bookData.summary && bookData.summary.publisher) {
     return bookData.summary.publisher
   }
 
   return "不明"
 }
-
 
 // =====================
 // 詳細ページ
@@ -310,7 +341,7 @@ function showBookDetail(book, index) {
       <img id="detailImage" src="${book.image}">
 
       <div id="detailInfo">
-        <p>著者 / イラストレーター：${book.author || "不明"}</p>
+        <p>著者：${book.author || "不明"}</p>
         <p>イラストレーター：${book.illustrator || "不明"}</p>
         <p>出版社：${book.publisher || "不明"}</p>
         <p>値段：${book.price ? book.price + "円" : "不明"}</p>
