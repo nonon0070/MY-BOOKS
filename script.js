@@ -171,6 +171,7 @@ async function findWorkingCover(isbn, openbdUrls) {
 // openBDから追加情報を取る関数
 // =====================
 
+
 function getTextValue(value) {
   if (!value) {
     return ""
@@ -281,75 +282,14 @@ function getContributorNamesByRole(bookData, roleCodes) {
   return [...new Set(names)]
 }
 
-function splitCreatorTextWithoutComma(text) {
-  if (!text) {
-    return []
-  }
-
-  return String(text)
-    .split(/[、／\/]/)
-    .map((name) => cleanName(name))
-    .filter((name) => {
-      return name !== ""
-    })
-}
-
-function getLabelFromOpenBD(bookData) {
-  const collection = bookData?.onix?.DescriptiveDetail?.Collection
-
-  if (Array.isArray(collection)) {
-    const titleElement = collection[0]?.TitleDetail?.TitleElement
-
-    if (Array.isArray(titleElement)) {
-      const titleText = getTextValue(titleElement[0]?.TitleText)
-
-      if (titleText) {
-        return titleText
-      }
-    }
-  }
-
-  if (bookData.summary && bookData.summary.series) {
-    return bookData.summary.series
-  }
-
-  return "不明"
-}
-
-function looksLikeLightNovel(bookData) {
-  const label = getLabelFromOpenBD(bookData)
-  const title = bookData?.summary?.title || ""
-
-  return (
-    label.includes("文庫") ||
-    label.includes("ノベル") ||
-    label.includes("電撃") ||
-    label.includes("ファンタジア") ||
-    label.includes("ダッシュエックス") ||
-    label.includes("MF") ||
-    label.includes("GA") ||
-    label.includes("ガガガ") ||
-    title.includes("ラノベ")
-  )
-}
-
 function getAuthorFromOpenBD(bookData) {
   const authorNames = getContributorNamesByRole(bookData, ["A01"])
-
-  if (authorNames.length >= 2 && looksLikeLightNovel(bookData)) {
-    return authorNames[0]
-  }
 
   if (authorNames.length >= 1) {
     return authorNames.join("、")
   }
 
-  const summaryAuthor = bookData?.summary?.author || ""
-  const creators = splitCreatorTextWithoutComma(summaryAuthor)
-
-  if (creators.length >= 2) {
-    return creators[0]
-  }
+  const summaryAuthor = bookData?.summary?.author
 
   if (summaryAuthor) {
     return cleanInvertedName(summaryAuthor)
@@ -368,19 +308,6 @@ function getIllustratorFromOpenBD(bookData) {
 
   if (illustratorNames.length >= 1) {
     return illustratorNames.join("、")
-  }
-
-  const authorNames = getContributorNamesByRole(bookData, ["A01"])
-
-  if (authorNames.length >= 2 && looksLikeLightNovel(bookData)) {
-    return authorNames.slice(1).join("、")
-  }
-
-  const summaryAuthor = bookData?.summary?.author || ""
-  const creators = splitCreatorTextWithoutComma(summaryAuthor)
-
-  if (creators.length >= 2) {
-    return creators.slice(1).join("、")
   }
 
   return "不明"
@@ -420,6 +347,28 @@ function getPageCountFromOpenBD(bookData) {
   }
 
   return ""
+}
+
+function getLabelFromOpenBD(bookData) {
+  const collection = bookData?.onix?.DescriptiveDetail?.Collection
+
+  if (Array.isArray(collection)) {
+    const titleElement = collection[0]?.TitleDetail?.TitleElement
+
+    if (Array.isArray(titleElement)) {
+      const titleText = getTextValue(titleElement[0]?.TitleText)
+
+      if (titleText) {
+        return titleText
+      }
+    }
+  }
+
+  if (bookData.summary && bookData.summary.series) {
+    return bookData.summary.series
+  }
+
+  return "不明"
 }
 
 function normalizePublisherName(publisherName) {
@@ -531,38 +480,70 @@ function showBookDetail(book, index) {
       <img id="detailImage" src="${book.image}">
 
       <div id="detailInfo">
-        <p>著者：${book.author || "不明"}</p>
-        <p>イラストレーター：${book.illustrator || "不明"}</p>
-        <p>レーベル：${book.label || "不明"}</p>
-        <p>出版社：${book.publisher || "不明"}</p>
-        <p>値段：${book.price ? book.price + "円" : "不明"}</p>
-        <p>ページ数：${book.pageCount ? book.pageCount + "ページ" : "不明"}</p>
+        <p>著者：</p>
+        <input id="detailAuthorInput" type="text" value="${book.author || ""}" placeholder="著者">
+
+        <p>イラストレーター：</p>
+        <input id="detailIllustratorInput" type="text" value="${book.illustrator || ""}" placeholder="イラストレーター">
+
+        <p>レーベル：</p>
+        <input id="detailLabelInput" type="text" value="${book.label || ""}" placeholder="レーベル">
+
+        <p>出版社：</p>
+        <input id="detailPublisherInput" type="text" value="${book.publisher || ""}" placeholder="出版社">
+
+        <p>値段：</p>
+        <input id="detailPriceInput" type="number" value="${book.price || ""}" placeholder="値段">
+
+        <p>ページ数：</p>
+        <input id="detailPageCountInput" type="number" value="${book.pageCount || ""}" placeholder="ページ数">
       </div>
     </div>
 
     <div id="detailRegisteredAtBox">
-  <label for="detailRegisteredAtInput">登録日：</label>
-  <input
-    id="detailRegisteredAtInput"
-    type="date"
-    value="${formatDateForInput(book.registeredAt)}"
-  >
-</div>
+      <label for="detailRegisteredAtInput">登録日：</label>
+      <input
+        id="detailRegisteredAtInput"
+        type="date"
+        value="${formatDateForInput(book.registeredAt)}"
+      >
+    </div>
 
     <button id="detailDeleteButton">この本を削除</button>
   `
 
+  const detailAuthorInput = document.getElementById("detailAuthorInput")
+  const detailIllustratorInput = document.getElementById("detailIllustratorInput")
+  const detailLabelInput = document.getElementById("detailLabelInput")
+  const detailPublisherInput = document.getElementById("detailPublisherInput")
+  const detailPriceInput = document.getElementById("detailPriceInput")
+  const detailPageCountInput = document.getElementById("detailPageCountInput")
+  const detailRegisteredAtInput = document.getElementById("detailRegisteredAtInput")
   const detailDeleteButton = document.getElementById("detailDeleteButton")
-const detailRegisteredAtInput = document.getElementById("detailRegisteredAtInput")
 
-detailRegisteredAtInput.onchange = () => {
-  if (selectedBookIndex === null) {
-    return
+  function saveDetailInputs() {
+    if (selectedBookIndex === null) {
+      return
+    }
+
+    books[selectedBookIndex].author = detailAuthorInput.value.trim() || "不明"
+    books[selectedBookIndex].illustrator = detailIllustratorInput.value.trim() || "不明"
+    books[selectedBookIndex].label = detailLabelInput.value.trim() || "不明"
+    books[selectedBookIndex].publisher = detailPublisherInput.value.trim() || "不明"
+    books[selectedBookIndex].price = detailPriceInput.value ? Number(detailPriceInput.value) : ""
+    books[selectedBookIndex].pageCount = detailPageCountInput.value ? Number(detailPageCountInput.value) : ""
+    books[selectedBookIndex].registeredAt = detailRegisteredAtInput.value
+
+    saveBooks()
   }
 
-  books[selectedBookIndex].registeredAt = detailRegisteredAtInput.value
-  saveBooks()
-}
+  detailAuthorInput.onchange = saveDetailInputs
+  detailIllustratorInput.onchange = saveDetailInputs
+  detailLabelInput.onchange = saveDetailInputs
+  detailPublisherInput.onchange = saveDetailInputs
+  detailPriceInput.onchange = saveDetailInputs
+  detailPageCountInput.onchange = saveDetailInputs
+  detailRegisteredAtInput.onchange = saveDetailInputs
 
   detailDeleteButton.onclick = () => {
     const ok = confirm("この本を削除しますか？")
@@ -581,7 +562,6 @@ detailRegisteredAtInput.onchange = () => {
 
   showPage(detailPage)
 }
-
 
 // =====================
 // 本棚表示
