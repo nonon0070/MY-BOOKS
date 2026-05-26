@@ -403,6 +403,59 @@ function getPublisherFromOpenBD(bookData) {
   return "不明"
 }
 
+async function fetchGoogleBookInfo(isbn) {
+  try {
+    const response = await fetch("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn)
+    const data = await response.json()
+
+    if (!data.items || !data.items[0] || !data.items[0].volumeInfo) {
+      return {}
+    }
+
+    const volumeInfo = data.items[0].volumeInfo
+
+    return {
+      googleAuthors: Array.isArray(volumeInfo.authors) ? volumeInfo.authors.join("、") : "",
+      googlePublisher: volumeInfo.publisher || "",
+      googlePageCount: volumeInfo.pageCount || ""
+    }
+  } catch (error) {
+    console.log("Google Books取得エラー:", error)
+    return {}
+  }
+}
+
+async function fetchNdlBookInfo(isbn) {
+  try {
+    const response = await fetch(
+      "https://ndlsearch.ndl.go.jp/api/opensearch?isbn=" + isbn
+    )
+
+    const text = await response.text()
+    const parser = new DOMParser()
+    const xml = parser.parseFromString(text, "text/xml")
+
+    const firstItem = xml.querySelector("item")
+
+    if (!firstItem) {
+      return {}
+    }
+
+    const title = firstItem.querySelector("title")?.textContent || ""
+    const creator = firstItem.querySelector("creator")?.textContent || ""
+    const publisher = firstItem.querySelector("publisher")?.textContent || ""
+
+    return {
+      ndlTitle: title,
+      ndlAuthor: creator,
+      ndlPublisher: publisher
+    }
+  } catch (error) {
+    console.log("NDLサーチ取得エラー:", error)
+    return {}
+  }
+}
+
 async function getPageCountFromGoogleBooks(isbn) {
   try {
     const response = await fetch("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn)
@@ -628,9 +681,33 @@ async function addBookByISBN(isbn) {
 
   console.log("openBD内URL:", openbdUrls)
 
-  if (!pageCount) {
-  pageCount = await getPageCountFromGoogleBooks(isbn)
+  const googleInfo = await fetchGoogleBookInfo(isbn)
+
+   if (!author || author === "不明") {
+  author = googleInfo.googleAuthors || "不明"
 }
+
+   if (!publisher || publisher === "不明") {
+  publisher = googleInfo.googlePublisher || "不明"
+}
+
+    if (!pageCount) {
+  pageCount = googleInfo.googlePageCount || ""
+}
+
+  const ndlInfo = await fetchNdlBookInfo(isbn)
+
+  if (!author || author === "不明") {
+    author = ndlInfo.ndlAuthor || "不明"
+  }
+
+  if (!publisher || publisher === "不明") {
+    publisher = ndlInfo.ndlPublisher || "不明"
+  }
+
+    if (!pageCount) {
+    pageCount = await getPageCountFromGoogleBooks(isbn)
+  }
 
 
 if (!pageCount) {
