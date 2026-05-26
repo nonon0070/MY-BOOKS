@@ -191,59 +191,19 @@ function getTextValue(value) {
   return ""
 }
 
-function getPriceFromOpenBD(bookData) {
-  const prices = bookData?.onix?.ProductSupply?.SupplyDetail?.Price
+function splitCreatorText(text) {
+  if (!text) {
+    return []
+  }
 
-  if (Array.isArray(prices)) {
-    const priceData = prices.find((price) => {
-      return price.PriceAmount
+  return text
+    .split(/[、,，／\/・]/)
+    .map((name) => {
+      return name.trim()
     })
-
-    if (priceData && priceData.PriceAmount) {
-      return Number(getTextValue(priceData.PriceAmount))
-    }
-  }
-
-  return ""
-}
-
-function getPageCountFromOpenBD(bookData) {
-  const extents = bookData?.onix?.DescriptiveDetail?.Extent
-
-  if (Array.isArray(extents)) {
-    const pageData = extents.find((extent) => {
-      const type = getTextValue(extent.ExtentType)
-      const unit = getTextValue(extent.ExtentUnit)
-      const value = Number(getTextValue(extent.ExtentValue))
-
-      return (
-        value > 20 &&
-        value < 3000 &&
-        (type === "00" || type === "11" || unit === "03")
-      )
+    .filter((name) => {
+      return name !== ""
     })
-
-    if (pageData && pageData.ExtentValue) {
-      return Number(getTextValue(pageData.ExtentValue))
-    }
-  }
-
-  const text = JSON.stringify(bookData)
-  const matches = text.match(/"ExtentValue":\s*(?:"|{"content":")?(\d+)/g) || []
-
-  for (const matchText of matches) {
-    const numberMatch = matchText.match(/\d+/)
-
-    if (numberMatch) {
-      const pageCount = Number(numberMatch[0])
-
-      if (pageCount > 20 && pageCount < 3000) {
-        return pageCount
-      }
-    }
-  }
-
-  return ""
 }
 
 function cleanName(name) {
@@ -252,8 +212,6 @@ function cleanName(name) {
   }
 
   return name
-    .replace(/,/g, "")
-    .replace(/，/g, "")
     .replace(/\s+/g, "")
     .trim()
 }
@@ -312,8 +270,11 @@ function getAuthorFromOpenBD(bookData) {
     return authorFromOnix
   }
 
-  if (bookData.summary && bookData.summary.author) {
-    return cleanName(bookData.summary.author)
+  const summaryAuthor = bookData?.summary?.author
+  const creators = splitCreatorText(summaryAuthor)
+
+  if (creators.length >= 1) {
+    return cleanName(creators[0])
   }
 
   return "不明"
@@ -324,7 +285,6 @@ function getIllustratorFromOpenBD(bookData) {
     "A12",
     "A13",
     "A36",
-    "A38",
     "B06"
   ])
 
@@ -332,14 +292,69 @@ function getIllustratorFromOpenBD(bookData) {
     return illustratorFromOnix
   }
 
-  const text = JSON.stringify(bookData)
-  const match = text.match(/(?:イラスト|illustration|illust|絵|画)[^ぁ-んァ-ン一-龥a-zA-Z0-9]*([ぁ-んァ-ン一-龥a-zA-Z0-9・ー]+)/i)
+  const summaryAuthor = bookData?.summary?.author
+  const creators = splitCreatorText(summaryAuthor)
 
-  if (match && match[1]) {
-    return cleanName(match[1])
+  if (creators.length >= 2) {
+    return cleanName(creators[1])
   }
 
   return "不明"
+}
+
+function getPriceFromOpenBD(bookData) {
+  const prices = bookData?.onix?.ProductSupply?.SupplyDetail?.Price
+
+  if (Array.isArray(prices)) {
+    const priceData = prices.find((price) => {
+      return price.PriceAmount
+    })
+
+    if (priceData && priceData.PriceAmount) {
+      return Number(getTextValue(priceData.PriceAmount))
+    }
+  }
+
+  return ""
+}
+
+function getPageCountFromOpenBD(bookData) {
+  const extents = bookData?.onix?.DescriptiveDetail?.Extent
+
+  if (Array.isArray(extents)) {
+    const pageData = extents.find((extent) => {
+      const type = getTextValue(extent.ExtentType)
+      const unit = getTextValue(extent.ExtentUnit)
+      const value = Number(getTextValue(extent.ExtentValue))
+
+      return (
+        value > 20 &&
+        value < 3000 &&
+        (type === "00" || type === "11" || unit === "03")
+      )
+    })
+
+    if (pageData && pageData.ExtentValue) {
+      return Number(getTextValue(pageData.ExtentValue))
+    }
+  }
+
+  const text = JSON.stringify(bookData)
+  const matches = text.match(/"ExtentValue":\s*(?:"|{"content":")?(\d+)/g) || []
+
+  for (const matchText of matches) {
+    const numberMatch = matchText.match(/\d+/)
+
+    if (numberMatch) {
+      const pageCount = Number(numberMatch[0])
+
+      if (pageCount > 20 && pageCount < 3000) {
+        return pageCount
+      }
+    }
+  }
+
+  return ""
 }
 
 function getLabelFromOpenBD(bookData) {
@@ -395,7 +410,6 @@ function getPublisherFromOpenBD(bookData) {
 
   return "不明"
 }
-
 
 
 // =====================
