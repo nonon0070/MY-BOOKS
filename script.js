@@ -371,13 +371,60 @@ function getLabelFromOpenBD(bookData) {
   return "不明"
 }
 
+function isWeakPublisherName(name) {
+  if (!name) {
+    return true
+  }
+
+  return (
+    name.includes("グループ") ||
+    name.includes("ホールディングス") ||
+    name.includes("パブリッシング") ||
+    name.includes("出版販売") ||
+    name.includes("発売")
+  )
+}
+
+function chooseBestPublisher(openbdPublisher, googlePublisher, ndlPublisher) {
+  const candidates = [
+    openbdPublisher,
+    googlePublisher,
+    ndlPublisher
+  ]
+    .map((name) => normalizePublisherName(name))
+    .filter((name) => {
+      return name && name !== "不明"
+    })
+
+  const uniqueCandidates = [...new Set(candidates)]
+
+  if (uniqueCandidates.length === 0) {
+    return "不明"
+  }
+
+  const strongCandidate = uniqueCandidates.find((name) => {
+    return !isWeakPublisherName(name)
+  })
+
+  if (strongCandidate) {
+    return strongCandidate
+  }
+
+  return uniqueCandidates[0]
+}
+
 function normalizePublisherName(publisherName) {
   if (!publisherName) {
     return "不明"
   }
 
-  return publisherName
+  return String(publisherName)
+    .replace(/　/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
 }
+
+
 
 function getPublisherFromOpenBD(bookData) {
   const publishers = bookData?.onix?.PublishingDetail?.Publisher
@@ -709,6 +756,7 @@ async function addBookByISBN(isbn) {
   let illustrator = "不明"
   let label = "不明"
   let publisher = "不明"
+  let openbdPublisher = "不明"
   let price = ""
   let pageCount = ""
   let openbdUrls = []
@@ -729,7 +777,8 @@ async function addBookByISBN(isbn) {
       author = getAuthorFromOpenBD(bookData)
       illustrator = getIllustratorFromOpenBD(bookData)
       label = getLabelFromOpenBD(bookData)
-      publisher = getPublisherFromOpenBD(bookData)
+      openbdPublisher = getPublisherFromOpenBD(bookData)
+      publisher = openbdPublisher
       price = getPriceFromOpenBD(bookData)
       pageCount = getPageCountFromOpenBD(bookData)
 
@@ -761,13 +810,25 @@ if (!author || author === "不明") {
   author = ndlInfo.ndlAuthor || "不明"
 }
 
-if (!publisher || publisher === "不明") {
-  publisher = ndlInfo.ndlPublisher || "不明"
-}
+
 
 if (!pageCount) {
   pageCount = ndlInfo.ndlPageCount || ""
 }
+
+publisher = chooseBestPublisher(
+  openbdPublisher,
+  googleInfo.googlePublisher,
+  ndlInfo.ndlPublisher
+)
+
+console.log("出版社候補:", {
+  openBD: openbdPublisher,
+  google: googleInfo.googlePublisher,
+  ndl: ndlInfo.ndlPublisher,
+  selected: publisher
+})
+
 
 
   const image = await findWorkingCover(isbn, openbdUrls)
