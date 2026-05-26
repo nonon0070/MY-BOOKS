@@ -186,7 +186,11 @@ function getPageCountFromOpenBD(bookData) {
 
   if (Array.isArray(extents)) {
     const pageData = extents.find((extent) => {
-      return String(extent.ExtentType) === "11" || String(extent.ExtentUnit) === "03"
+      return (
+        String(extent.ExtentType) === "11" ||
+        String(extent.ExtentUnit) === "03" ||
+        String(extent.ExtentType) === "00"
+      )
     })
 
     if (pageData && pageData.ExtentValue) {
@@ -195,13 +199,34 @@ function getPageCountFromOpenBD(bookData) {
   }
 
   const text = JSON.stringify(bookData)
-  const match = text.match(/"ExtentValue":"?(\d+)"?/)
 
-  if (match && match[1]) {
-    return Number(match[1])
+  const matches = text.match(/"ExtentValue":"?(\d+)"?/g) || []
+
+  for (const matchText of matches) {
+    const numberMatch = matchText.match(/\d+/)
+
+    if (numberMatch) {
+      const pageCount = Number(numberMatch[0])
+
+      if (pageCount > 20 && pageCount < 3000) {
+        return pageCount
+      }
+    }
   }
 
   return ""
+}
+
+function cleanName(name) {
+  if (!name) {
+    return ""
+  }
+
+  return name
+    .replace(/,/g, "")
+    .replace(/，/g, "")
+    .replace(/\s+/g, "")
+    .trim()
 }
 
 function getContributorNames(bookData, roleCodes) {
@@ -216,18 +241,20 @@ function getContributorNames(bookData, roleCodes) {
       return roleCodes.includes(contributor.ContributorRole)
     })
     .map((contributor) => {
-      return (
+      return cleanName(
         contributor.PersonName ||
-        contributor.PersonNameInverted ||
-        contributor.CorporateName ||
-        ""
+          contributor.PersonNameInverted ||
+          contributor.CorporateName ||
+          ""
       )
     })
     .filter((name) => {
       return name !== ""
     })
 
-  return names.join("、")
+  const uniqueNames = [...new Set(names)]
+
+  return uniqueNames.join("、")
 }
 
 function getAuthorFromOpenBD(bookData) {
@@ -238,17 +265,61 @@ function getAuthorFromOpenBD(bookData) {
   }
 
   if (bookData.summary && bookData.summary.author) {
-    return bookData.summary.author
+    return cleanName(bookData.summary.author)
   }
 
   return "不明"
 }
 
 function getIllustratorFromOpenBD(bookData) {
-  const illustratorFromOnix = getContributorNames(bookData, ["A12"])
+  const illustratorFromOnix = getContributorNames(bookData, [
+    "A12",
+    "A13",
+    "A36",
+    "A38"
+  ])
 
   if (illustratorFromOnix) {
     return illustratorFromOnix
+  }
+
+  return "不明"
+}
+
+function normalizePublisherName(publisherName) {
+  if (!publisherName) {
+    return "不明"
+  }
+
+  if (
+    publisherName.includes("角川") ||
+    publisherName.includes("アスキー・メディアワークス") ||
+    publisherName.includes("メディアワークス")
+  ) {
+    return "KADOKAWA"
+  }
+
+  return publisherName
+}
+
+function getLabelFromOpenBD(bookData) {
+  const collection = bookData?.onix?.DescriptiveDetail?.Collection
+
+  if (Array.isArray(collection)) {
+    const titleDetail = collection[0]?.TitleDetail
+    const titleElement = titleDetail?.TitleElement
+
+    if (Array.isArray(titleElement)) {
+      const titleText = titleElement[0]?.TitleText?.content
+
+      if (titleText) {
+        return titleText
+      }
+    }
+  }
+
+  if (bookData.summary && bookData.summary.series) {
+    return bookData.summary.series
   }
 
   return "不明"
@@ -263,22 +334,16 @@ function getPublisherFromOpenBD(bookData) {
     })
 
     if (mainPublisher && mainPublisher.PublisherName) {
-      return mainPublisher.PublisherName
+      return normalizePublisherName(mainPublisher.PublisherName)
     }
 
     if (publishers[0] && publishers[0].PublisherName) {
-      return publishers[0].PublisherName
+      return normalizePublisherName(publishers[0].PublisherName)
     }
   }
 
-  const imprints = bookData?.onix?.PublishingDetail?.Imprint
-
-  if (Array.isArray(imprints) && imprints[0] && imprints[0].ImprintName) {
-    return imprints[0].ImprintName
-  }
-
   if (bookData.summary && bookData.summary.publisher) {
-    return bookData.summary.publisher
+    return normalizePublisherName(bookData.summary.publisher)
   }
 
   return "不明"
@@ -343,6 +408,7 @@ function showBookDetail(book, index) {
       <div id="detailInfo">
         <p>著者：${book.author || "不明"}</p>
         <p>イラストレーター：${book.illustrator || "不明"}</p>
+        <p>レーベル：${book.label || "不明"}</p>
         <p>出版社：${book.publisher || "不明"}</p>
         <p>値段：${book.price ? book.price + "円" : "不明"}</p>
         <p>ページ数：${book.pageCount ? book.pageCount + "ページ" : "不明"}</p>
@@ -453,12 +519,13 @@ async function addBookByISBN(isbn) {
   }
 
   let title = "タイトル不明"
-let author = "不明"
-let illustrator = "不明"
-let publisher = "不明"
-let price = ""
-let pageCount = ""
-let openbdUrls = []
+  let author = "不明"
+  let illustrator = "不明"
+  let label = "不明"
+  let publisher = "不明"
+  let price = ""
+  let pageCount = ""
+  let openbdUrls = []
 
     try {
     const response = await fetch("https://api.openbd.jp/v1/get?isbn=" + isbn)
@@ -475,6 +542,7 @@ let openbdUrls = []
 
       author = getAuthorFromOpenBD(bookData)
       illustrator = getIllustratorFromOpenBD(bookData)
+      label = getLabelFromOpenBD(bookData)
       publisher = getPublisherFromOpenBD(bookData)
       price = getPriceFromOpenBD(bookData)
       pageCount = getPageCountFromOpenBD(bookData)
@@ -499,6 +567,7 @@ let openbdUrls = []
     image: image,
     author: author,
     illustrator: illustrator,
+    label: label,
     publisher: publisher,
     price: price,
     pageCount: pageCount,
