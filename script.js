@@ -171,11 +171,37 @@ async function findWorkingCover(isbn, openbdUrls) {
 // openBDから追加情報を取る関数
 // =====================
 
+function getTextValue(value) {
+  if (!value) {
+    return ""
+  }
+
+  if (typeof value === "string") {
+    return value
+  }
+
+  if (typeof value === "number") {
+    return String(value)
+  }
+
+  if (typeof value === "object" && value.content) {
+    return value.content
+  }
+
+  return ""
+}
+
 function getPriceFromOpenBD(bookData) {
   const prices = bookData?.onix?.ProductSupply?.SupplyDetail?.Price
 
-  if (Array.isArray(prices) && prices[0] && prices[0].PriceAmount) {
-    return Number(prices[0].PriceAmount)
+  if (Array.isArray(prices)) {
+    const priceData = prices.find((price) => {
+      return price.PriceAmount
+    })
+
+    if (priceData && priceData.PriceAmount) {
+      return Number(getTextValue(priceData.PriceAmount))
+    }
   }
 
   return ""
@@ -186,21 +212,24 @@ function getPageCountFromOpenBD(bookData) {
 
   if (Array.isArray(extents)) {
     const pageData = extents.find((extent) => {
+      const type = getTextValue(extent.ExtentType)
+      const unit = getTextValue(extent.ExtentUnit)
+      const value = Number(getTextValue(extent.ExtentValue))
+
       return (
-        String(extent.ExtentType) === "11" ||
-        String(extent.ExtentUnit) === "03" ||
-        String(extent.ExtentType) === "00"
+        value > 20 &&
+        value < 3000 &&
+        (type === "00" || type === "11" || unit === "03")
       )
     })
 
     if (pageData && pageData.ExtentValue) {
-      return Number(pageData.ExtentValue)
+      return Number(getTextValue(pageData.ExtentValue))
     }
   }
 
   const text = JSON.stringify(bookData)
-
-  const matches = text.match(/"ExtentValue":"?(\d+)"?/g) || []
+  const matches = text.match(/"ExtentValue":\s*(?:"|{"content":")?(\d+)/g) || []
 
   for (const matchText of matches) {
     const numberMatch = matchText.match(/\d+/)
@@ -229,6 +258,26 @@ function cleanName(name) {
     .trim()
 }
 
+function getContributorRoleList(contributor) {
+  const role = contributor.ContributorRole
+
+  if (Array.isArray(role)) {
+    return role.map((item) => {
+      return getTextValue(item)
+    })
+  }
+
+  return [getTextValue(role)]
+}
+
+function getContributorName(contributor) {
+  return cleanName(
+    getTextValue(contributor.PersonName) ||
+      getTextValue(contributor.PersonNameInverted) ||
+      getTextValue(contributor.CorporateName)
+  )
+}
+
 function getContributorNames(bookData, roleCodes) {
   const contributors = bookData?.onix?.DescriptiveDetail?.Contributor
 
@@ -238,15 +287,14 @@ function getContributorNames(bookData, roleCodes) {
 
   const names = contributors
     .filter((contributor) => {
-      return roleCodes.includes(contributor.ContributorRole)
+      const roles = getContributorRoleList(contributor)
+
+      return roles.some((role) => {
+        return roleCodes.includes(role)
+      })
     })
     .map((contributor) => {
-      return cleanName(
-        contributor.PersonName ||
-          contributor.PersonNameInverted ||
-          contributor.CorporateName ||
-          ""
-      )
+      return getContributorName(contributor)
     })
     .filter((name) => {
       return name !== ""
@@ -276,41 +324,32 @@ function getIllustratorFromOpenBD(bookData) {
     "A12",
     "A13",
     "A36",
-    "A38"
+    "A38",
+    "B06"
   ])
 
   if (illustratorFromOnix) {
     return illustratorFromOnix
   }
 
+  const text = JSON.stringify(bookData)
+  const match = text.match(/(?:イラスト|illustration|illust|絵|画)[^ぁ-んァ-ン一-龥a-zA-Z0-9]*([ぁ-んァ-ン一-龥a-zA-Z0-9・ー]+)/i)
+
+  if (match && match[1]) {
+    return cleanName(match[1])
+  }
+
   return "不明"
-}
-
-function normalizePublisherName(publisherName) {
-  if (!publisherName) {
-    return "不明"
-  }
-
-  if (
-    publisherName.includes("角川") ||
-    publisherName.includes("アスキー・メディアワークス") ||
-    publisherName.includes("メディアワークス")
-  ) {
-    return "KADOKAWA"
-  }
-
-  return publisherName
 }
 
 function getLabelFromOpenBD(bookData) {
   const collection = bookData?.onix?.DescriptiveDetail?.Collection
 
   if (Array.isArray(collection)) {
-    const titleDetail = collection[0]?.TitleDetail
-    const titleElement = titleDetail?.TitleElement
+    const titleElement = collection[0]?.TitleDetail?.TitleElement
 
     if (Array.isArray(titleElement)) {
-      const titleText = titleElement[0]?.TitleText?.content
+      const titleText = getTextValue(titleElement[0]?.TitleText)
 
       if (titleText) {
         return titleText
@@ -325,20 +364,28 @@ function getLabelFromOpenBD(bookData) {
   return "不明"
 }
 
+function normalizePublisherName(publisherName) {
+  if (!publisherName) {
+    return "不明"
+  }
+
+  return publisherName
+}
+
 function getPublisherFromOpenBD(bookData) {
   const publishers = bookData?.onix?.PublishingDetail?.Publisher
 
   if (Array.isArray(publishers)) {
     const mainPublisher = publishers.find((publisher) => {
-      return String(publisher.PublisherRole) === "01"
+      return getTextValue(publisher.PublisherRole) === "01"
     })
 
     if (mainPublisher && mainPublisher.PublisherName) {
-      return normalizePublisherName(mainPublisher.PublisherName)
+      return normalizePublisherName(getTextValue(mainPublisher.PublisherName))
     }
 
     if (publishers[0] && publishers[0].PublisherName) {
-      return normalizePublisherName(publishers[0].PublisherName)
+      return normalizePublisherName(getTextValue(publishers[0].PublisherName))
     }
   }
 
@@ -348,6 +395,8 @@ function getPublisherFromOpenBD(bookData) {
 
   return "不明"
 }
+
+
 
 // =====================
 // 詳細ページ
