@@ -403,10 +403,41 @@ function getPublisherFromOpenBD(bookData) {
   return "不明"
 }
 
+
+function getPageCountFromText(text) {
+  if (!text) {
+    return ""
+  }
+
+  const patterns = [
+    /(\d+)\s*ページ/,
+    /(\d+)\s*p\b/i,
+    /(\d+)\s*頁/
+  ]
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern)
+
+    if (match && match[1]) {
+      const pageCount = Number(match[1])
+
+      if (pageCount > 20 && pageCount < 3000) {
+        return pageCount
+      }
+    }
+  }
+
+  return ""
+}
+
+
+
 async function fetchGoogleBookInfo(isbn) {
   try {
     const response = await fetch("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn)
     const data = await response.json()
+
+    console.log("Google Books全部:", data)
 
     if (!data.items || !data.items[0] || !data.items[0].volumeInfo) {
       return {}
@@ -425,6 +456,24 @@ async function fetchGoogleBookInfo(isbn) {
   }
 }
 
+function getXmlText(parent, tagName) {
+  const plainTag = parent.getElementsByTagName(tagName)[0]
+
+  if (plainTag && plainTag.textContent) {
+    return plainTag.textContent
+  }
+
+  const allTags = parent.getElementsByTagName("*")
+
+  for (const tag of allTags) {
+    if (tag.localName === tagName && tag.textContent) {
+      return tag.textContent
+    }
+  }
+
+  return ""
+}
+
 async function fetchNdlBookInfo(isbn) {
   try {
     const response = await fetch(
@@ -432,29 +481,40 @@ async function fetchNdlBookInfo(isbn) {
     )
 
     const text = await response.text()
+
+    console.log("NDLサーチ全文:", text)
+
     const parser = new DOMParser()
     const xml = parser.parseFromString(text, "text/xml")
 
-    const firstItem = xml.querySelector("item")
+    const firstItem = xml.getElementsByTagName("item")[0]
 
     if (!firstItem) {
       return {}
     }
 
-    const title = firstItem.querySelector("title")?.textContent || ""
-    const creator = firstItem.querySelector("creator")?.textContent || ""
-    const publisher = firstItem.querySelector("publisher")?.textContent || ""
+    const title = getXmlText(firstItem, "title")
+    const creator = getXmlText(firstItem, "creator")
+    const publisher = getXmlText(firstItem, "publisher")
+    const description = getXmlText(firstItem, "description")
+    const extent = getXmlText(firstItem, "extent")
+
+    const pageCountFromExtent = getPageCountFromText(extent)
+    const pageCountFromDescription = getPageCountFromText(description)
 
     return {
       ndlTitle: title,
       ndlAuthor: creator,
-      ndlPublisher: publisher
+      ndlPublisher: publisher,
+      ndlPageCount: pageCountFromExtent || pageCountFromDescription || ""
     }
   } catch (error) {
     console.log("NDLサーチ取得エラー:", error)
     return {}
   }
 }
+
+
 
 async function getPageCountFromGoogleBooks(isbn) {
   try {
@@ -697,27 +757,27 @@ async function addBookByISBN(isbn) {
 
   const ndlInfo = await fetchNdlBookInfo(isbn)
 
-  if (!author || author === "不明") {
-    author = ndlInfo.ndlAuthor || "不明"
-  }
+if (!author || author === "不明") {
+  author = ndlInfo.ndlAuthor || "不明"
+}
 
-  if (!publisher || publisher === "不明") {
-    publisher = ndlInfo.ndlPublisher || "不明"
-  }
-
-    if (!pageCount) {
-    pageCount = await getPageCountFromGoogleBooks(isbn)
-  }
-
+if (!publisher || publisher === "不明") {
+  publisher = ndlInfo.ndlPublisher || "不明"
+}
 
 if (!pageCount) {
-  pageCount = await getPageCountFromGoogleBooks(isbn)
+  pageCount = ndlInfo.ndlPageCount || ""
 }
+
+
   const image = await findWorkingCover(isbn, openbdUrls)
 
   console.log("ISBN:", isbn)
   console.log("タイトル:", title)
   console.log("最終画像URL:", image)
+  console.log("最終著者:", author)
+  console.log("最終イラストレーター:", illustrator)
+  console.log("最終ページ数:", pageCount)
 
   const book = {
     isbn: isbn,
