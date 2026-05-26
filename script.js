@@ -197,31 +197,21 @@ function cleanName(name) {
   }
 
   return String(name)
-    .replace(/\s+/g, "")
     .replace(/，/g, ",")
+    .replace(/\s+/g, "")
     .trim()
 }
 
-function splitCreatorText(text) {
-  if (!text) {
-    return []
+function cleanInvertedName(name) {
+  if (!name) {
+    return ""
   }
 
-  return String(text)
-    .split(/[、／\/]/)
-    .map((name) => cleanName(name))
-    .filter((name) => name !== "")
-}
-
-function splitCommaCreatorText(text) {
-  if (!text) {
-    return []
-  }
-
-  return String(text)
-    .split(/[,，]/)
-    .map((name) => cleanName(name))
-    .filter((name) => name !== "")
+  return String(name)
+    .replace(/,/g, "")
+    .replace(/，/g, "")
+    .replace(/\s+/g, "")
+    .trim()
 }
 
 function getContributorRoleList(contributor) {
@@ -235,11 +225,25 @@ function getContributorRoleList(contributor) {
 }
 
 function getContributorName(contributor) {
-  return cleanName(
-    getTextValue(contributor.PersonName) ||
-      getTextValue(contributor.PersonNameInverted) ||
-      getTextValue(contributor.CorporateName)
-  )
+  const normalName = getTextValue(contributor.PersonName)
+
+  if (normalName) {
+    return cleanName(normalName)
+  }
+
+  const invertedName = getTextValue(contributor.PersonNameInverted)
+
+  if (invertedName) {
+    return cleanInvertedName(invertedName)
+  }
+
+  const corporateName = getTextValue(contributor.CorporateName)
+
+  if (corporateName) {
+    return cleanName(corporateName)
+  }
+
+  return ""
 }
 
 function getContributors(bookData) {
@@ -256,7 +260,9 @@ function getContributors(bookData) {
         roles: getContributorRoleList(contributor)
       }
     })
-    .filter((contributor) => contributor.name !== "")
+    .filter((contributor) => {
+      return contributor.name !== ""
+    })
 }
 
 function getContributorNamesByRole(bookData, roleCodes) {
@@ -264,11 +270,28 @@ function getContributorNamesByRole(bookData, roleCodes) {
 
   const names = contributors
     .filter((contributor) => {
-      return contributor.roles.some((role) => roleCodes.includes(role))
+      return contributor.roles.some((role) => {
+        return roleCodes.includes(role)
+      })
     })
-    .map((contributor) => contributor.name)
+    .map((contributor) => {
+      return contributor.name
+    })
 
   return [...new Set(names)]
+}
+
+function splitCreatorTextWithoutComma(text) {
+  if (!text) {
+    return []
+  }
+
+  return String(text)
+    .split(/[、／\/]/)
+    .map((name) => cleanName(name))
+    .filter((name) => {
+      return name !== ""
+    })
 }
 
 function getLabelFromOpenBD(bookData) {
@@ -300,18 +323,20 @@ function looksLikeLightNovel(bookData) {
   return (
     label.includes("文庫") ||
     label.includes("ノベル") ||
+    label.includes("電撃") ||
     label.includes("ファンタジア") ||
     label.includes("ダッシュエックス") ||
-    label.includes("電撃") ||
+    label.includes("MF") ||
+    label.includes("GA") ||
+    label.includes("ガガガ") ||
     title.includes("ラノベ")
   )
 }
 
 function getAuthorFromOpenBD(bookData) {
   const authorNames = getContributorNamesByRole(bookData, ["A01"])
-  const illustratorNames = getContributorNamesByRole(bookData, ["A12", "A13", "A36", "B06"])
 
-  if (authorNames.length >= 2 && illustratorNames.length === 0 && looksLikeLightNovel(bookData)) {
+  if (authorNames.length >= 2 && looksLikeLightNovel(bookData)) {
     return authorNames[0]
   }
 
@@ -320,27 +345,26 @@ function getAuthorFromOpenBD(bookData) {
   }
 
   const summaryAuthor = bookData?.summary?.author || ""
-  const slashParts = splitCreatorText(summaryAuthor)
+  const creators = splitCreatorTextWithoutComma(summaryAuthor)
 
-  if (slashParts.length >= 2) {
-    return slashParts[0]
-  }
-
-  const commaParts = splitCommaCreatorText(summaryAuthor)
-
-  if (commaParts.length >= 2 && looksLikeLightNovel(bookData)) {
-    return commaParts[0]
+  if (creators.length >= 2) {
+    return creators[0]
   }
 
   if (summaryAuthor) {
-    return cleanName(summaryAuthor).replace(/,/g, "")
+    return cleanInvertedName(summaryAuthor)
   }
 
   return "不明"
 }
 
 function getIllustratorFromOpenBD(bookData) {
-  const illustratorNames = getContributorNamesByRole(bookData, ["A12", "A13", "A36", "B06"])
+  const illustratorNames = getContributorNamesByRole(bookData, [
+    "A12",
+    "A13",
+    "A36",
+    "B06"
+  ])
 
   if (illustratorNames.length >= 1) {
     return illustratorNames.join("、")
@@ -353,16 +377,10 @@ function getIllustratorFromOpenBD(bookData) {
   }
 
   const summaryAuthor = bookData?.summary?.author || ""
-  const slashParts = splitCreatorText(summaryAuthor)
+  const creators = splitCreatorTextWithoutComma(summaryAuthor)
 
-  if (slashParts.length >= 2) {
-    return slashParts.slice(1).join("、")
-  }
-
-  const commaParts = splitCommaCreatorText(summaryAuthor)
-
-  if (commaParts.length >= 2 && looksLikeLightNovel(bookData)) {
-    return commaParts.slice(1).join("、")
+  if (creators.length >= 2) {
+    return creators.slice(1).join("、")
   }
 
   return "不明"
@@ -372,7 +390,9 @@ function getPriceFromOpenBD(bookData) {
   const prices = bookData?.onix?.ProductSupply?.SupplyDetail?.Price
 
   if (Array.isArray(prices)) {
-    const priceData = prices.find((price) => price.PriceAmount)
+    const priceData = prices.find((price) => {
+      return price.PriceAmount
+    })
 
     if (priceData && priceData.PriceAmount) {
       return Number(getTextValue(priceData.PriceAmount))
@@ -665,6 +685,9 @@ async function addBookByISBN(isbn) {
 }
 
 
+if (!pageCount) {
+  pageCount = await getPageCountFromGoogleBooks(isbn)
+}
   const image = await findWorkingCover(isbn, openbdUrls)
 
   console.log("ISBN:", isbn)
