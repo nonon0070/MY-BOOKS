@@ -480,23 +480,12 @@ function showBookDetail(book, index) {
       <img id="detailImage" src="${book.image}">
 
       <div id="detailInfo">
-        <p>著者：</p>
-        <input id="detailAuthorInput" type="text" value="${book.author || ""}" placeholder="著者">
-
-        <p>イラストレーター：</p>
-        <input id="detailIllustratorInput" type="text" value="${book.illustrator || ""}" placeholder="イラストレーター">
-
-        <p>レーベル：</p>
-        <input id="detailLabelInput" type="text" value="${book.label || ""}" placeholder="レーベル">
-
-        <p>出版社：</p>
-        <input id="detailPublisherInput" type="text" value="${book.publisher || ""}" placeholder="出版社">
-
-        <p>値段：</p>
-        <input id="detailPriceInput" type="number" value="${book.price || ""}" placeholder="値段">
-
-        <p>ページ数：</p>
-        <input id="detailPageCountInput" type="number" value="${book.pageCount || ""}" placeholder="ページ数">
+        <p>著者：${book.author || "不明"}</p>
+        <p>イラストレーター：${book.illustrator || "不明"}</p>
+        <p>レーベル：${book.label || "不明"}</p>
+        <p>出版社：${book.publisher || "不明"}</p>
+        <p>値段：${book.price ? book.price + "円" : "不明"}</p>
+        <p>ページ数：${book.pageCount ? book.pageCount + "ページ" : "不明"}</p>
       </div>
     </div>
 
@@ -512,38 +501,17 @@ function showBookDetail(book, index) {
     <button id="detailDeleteButton">この本を削除</button>
   `
 
-  const detailAuthorInput = document.getElementById("detailAuthorInput")
-  const detailIllustratorInput = document.getElementById("detailIllustratorInput")
-  const detailLabelInput = document.getElementById("detailLabelInput")
-  const detailPublisherInput = document.getElementById("detailPublisherInput")
-  const detailPriceInput = document.getElementById("detailPriceInput")
-  const detailPageCountInput = document.getElementById("detailPageCountInput")
   const detailRegisteredAtInput = document.getElementById("detailRegisteredAtInput")
   const detailDeleteButton = document.getElementById("detailDeleteButton")
 
-  function saveDetailInputs() {
+  detailRegisteredAtInput.onchange = () => {
     if (selectedBookIndex === null) {
       return
     }
 
-    books[selectedBookIndex].author = detailAuthorInput.value.trim() || "不明"
-    books[selectedBookIndex].illustrator = detailIllustratorInput.value.trim() || "不明"
-    books[selectedBookIndex].label = detailLabelInput.value.trim() || "不明"
-    books[selectedBookIndex].publisher = detailPublisherInput.value.trim() || "不明"
-    books[selectedBookIndex].price = detailPriceInput.value ? Number(detailPriceInput.value) : ""
-    books[selectedBookIndex].pageCount = detailPageCountInput.value ? Number(detailPageCountInput.value) : ""
     books[selectedBookIndex].registeredAt = detailRegisteredAtInput.value
-
     saveBooks()
   }
-
-  detailAuthorInput.onchange = saveDetailInputs
-  detailIllustratorInput.onchange = saveDetailInputs
-  detailLabelInput.onchange = saveDetailInputs
-  detailPublisherInput.onchange = saveDetailInputs
-  detailPriceInput.onchange = saveDetailInputs
-  detailPageCountInput.onchange = saveDetailInputs
-  detailRegisteredAtInput.onchange = saveDetailInputs
 
   detailDeleteButton.onclick = () => {
     const ok = confirm("この本を削除しますか？")
