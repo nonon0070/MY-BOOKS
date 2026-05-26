@@ -168,10 +168,6 @@ async function findWorkingCover(isbn, openbdUrls) {
 }
 
 
-// =====================
-// openBDから追加情報を取る関数
-// =====================
-
 function getPriceFromOpenBD(bookData) {
   const prices = bookData?.onix?.ProductSupply?.SupplyDetail?.Price
 
@@ -196,6 +192,64 @@ function getPageCountFromOpenBD(bookData) {
   }
 
   return ""
+}
+
+function getContributorNames(bookData, roleCodes) {
+  const contributors = bookData?.onix?.DescriptiveDetail?.Contributor
+
+  if (!Array.isArray(contributors)) {
+    return ""
+  }
+
+  const names = contributors
+    .filter((contributor) => {
+      return roleCodes.includes(contributor.ContributorRole)
+    })
+    .map((contributor) => {
+      return (
+        contributor.PersonName ||
+        contributor.PersonNameInverted ||
+        contributor.CorporateName ||
+        ""
+      )
+    })
+    .filter((name) => {
+      return name !== ""
+    })
+
+  return names.join("、")
+}
+
+function getAuthorFromOpenBD(bookData) {
+  const authorFromOnix = getContributorNames(bookData, ["A01"])
+
+  if (authorFromOnix) {
+    return authorFromOnix
+  }
+
+  if (bookData.summary && bookData.summary.author) {
+    return bookData.summary.author
+  }
+
+  return "不明"
+}
+
+function getIllustratorFromOpenBD(bookData) {
+  const illustratorFromOnix = getContributorNames(bookData, ["A12"])
+
+  if (illustratorFromOnix) {
+    return illustratorFromOnix
+  }
+
+  return "不明"
+}
+
+function getPublisherFromOpenBD(bookData) {
+  if (bookData.summary && bookData.summary.publisher) {
+    return bookData.summary.publisher
+  }
+
+  return "不明"
 }
 
 
@@ -257,6 +311,7 @@ function showBookDetail(book, index) {
 
       <div id="detailInfo">
         <p>著者 / イラストレーター：${book.author || "不明"}</p>
+        <p>イラストレーター：${book.illustrator || "不明"}</p>
         <p>出版社：${book.publisher || "不明"}</p>
         <p>値段：${book.price ? book.price + "円" : "不明"}</p>
         <p>ページ数：${book.pageCount ? book.pageCount + "ページ" : "不明"}</p>
@@ -367,13 +422,14 @@ async function addBookByISBN(isbn) {
   }
 
   let title = "タイトル不明"
-  let author = "不明"
-  let publisher = "不明"
-  let price = ""
-  let pageCount = ""
-  let openbdUrls = []
+let author = "不明"
+let illustrator = "不明"
+let publisher = "不明"
+let price = ""
+let pageCount = ""
+let openbdUrls = []
 
-  try {
+    try {
     const response = await fetch("https://api.openbd.jp/v1/get?isbn=" + isbn)
     const data = await response.json()
 
@@ -386,14 +442,9 @@ async function addBookByISBN(isbn) {
         title = bookData.summary.title
       }
 
-      if (bookData.summary && bookData.summary.author) {
-        author = bookData.summary.author
-      }
-
-      if (bookData.summary && bookData.summary.publisher) {
-        publisher = bookData.summary.publisher
-      }
-
+      author = getAuthorFromOpenBD(bookData)
+      illustrator = getIllustratorFromOpenBD(bookData)
+      publisher = getPublisherFromOpenBD(bookData)
       price = getPriceFromOpenBD(bookData)
       pageCount = getPageCountFromOpenBD(bookData)
 
@@ -416,10 +467,12 @@ async function addBookByISBN(isbn) {
     title: title,
     image: image,
     author: author,
+    illustrator: illustrator,
     publisher: publisher,
     price: price,
     pageCount: pageCount,
     registeredAt: getTodayDateValue()
+   
   }
 
   books.push(book)
