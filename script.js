@@ -191,38 +191,44 @@ function getTextValue(value) {
   return ""
 }
 
-function splitCreatorText(text) {
-  if (!text) {
-    return []
-  }
-
-  return text
-    .split(/[、,，／\/・]/)
-    .map((name) => {
-      return name.trim()
-    })
-    .filter((name) => {
-      return name !== ""
-    })
-}
-
 function cleanName(name) {
   if (!name) {
     return ""
   }
 
-  return name
+  return String(name)
     .replace(/\s+/g, "")
+    .replace(/，/g, ",")
     .trim()
+}
+
+function splitCreatorText(text) {
+  if (!text) {
+    return []
+  }
+
+  return String(text)
+    .split(/[、／\/]/)
+    .map((name) => cleanName(name))
+    .filter((name) => name !== "")
+}
+
+function splitCommaCreatorText(text) {
+  if (!text) {
+    return []
+  }
+
+  return String(text)
+    .split(/[,，]/)
+    .map((name) => cleanName(name))
+    .filter((name) => name !== "")
 }
 
 function getContributorRoleList(contributor) {
   const role = contributor.ContributorRole
 
   if (Array.isArray(role)) {
-    return role.map((item) => {
-      return getTextValue(item)
-    })
+    return role.map((item) => getTextValue(item))
   }
 
   return [getTextValue(role)]
@@ -236,125 +242,33 @@ function getContributorName(contributor) {
   )
 }
 
-function getContributorNames(bookData, roleCodes) {
+function getContributors(bookData) {
   const contributors = bookData?.onix?.DescriptiveDetail?.Contributor
 
   if (!Array.isArray(contributors)) {
-    return ""
+    return []
   }
+
+  return contributors
+    .map((contributor) => {
+      return {
+        name: getContributorName(contributor),
+        roles: getContributorRoleList(contributor)
+      }
+    })
+    .filter((contributor) => contributor.name !== "")
+}
+
+function getContributorNamesByRole(bookData, roleCodes) {
+  const contributors = getContributors(bookData)
 
   const names = contributors
     .filter((contributor) => {
-      const roles = getContributorRoleList(contributor)
-
-      return roles.some((role) => {
-        return roleCodes.includes(role)
-      })
+      return contributor.roles.some((role) => roleCodes.includes(role))
     })
-    .map((contributor) => {
-      return getContributorName(contributor)
-    })
-    .filter((name) => {
-      return name !== ""
-    })
+    .map((contributor) => contributor.name)
 
-  const uniqueNames = [...new Set(names)]
-
-  return uniqueNames.join("、")
-}
-
-function getAuthorFromOpenBD(bookData) {
-  const authorFromOnix = getContributorNames(bookData, ["A01"])
-
-  if (authorFromOnix) {
-    return authorFromOnix
-  }
-
-  const summaryAuthor = bookData?.summary?.author
-  const creators = splitCreatorText(summaryAuthor)
-
-  if (creators.length >= 1) {
-    return cleanName(creators[0])
-  }
-
-  return "不明"
-}
-
-function getIllustratorFromOpenBD(bookData) {
-  const illustratorFromOnix = getContributorNames(bookData, [
-    "A12",
-    "A13",
-    "A36",
-    "B06"
-  ])
-
-  if (illustratorFromOnix) {
-    return illustratorFromOnix
-  }
-
-  const summaryAuthor = bookData?.summary?.author
-  const creators = splitCreatorText(summaryAuthor)
-
-  if (creators.length >= 2) {
-    return cleanName(creators[1])
-  }
-
-  return "不明"
-}
-
-function getPriceFromOpenBD(bookData) {
-  const prices = bookData?.onix?.ProductSupply?.SupplyDetail?.Price
-
-  if (Array.isArray(prices)) {
-    const priceData = prices.find((price) => {
-      return price.PriceAmount
-    })
-
-    if (priceData && priceData.PriceAmount) {
-      return Number(getTextValue(priceData.PriceAmount))
-    }
-  }
-
-  return ""
-}
-
-function getPageCountFromOpenBD(bookData) {
-  const extents = bookData?.onix?.DescriptiveDetail?.Extent
-
-  if (Array.isArray(extents)) {
-    const pageData = extents.find((extent) => {
-      const type = getTextValue(extent.ExtentType)
-      const unit = getTextValue(extent.ExtentUnit)
-      const value = Number(getTextValue(extent.ExtentValue))
-
-      return (
-        value > 20 &&
-        value < 3000 &&
-        (type === "00" || type === "11" || unit === "03")
-      )
-    })
-
-    if (pageData && pageData.ExtentValue) {
-      return Number(getTextValue(pageData.ExtentValue))
-    }
-  }
-
-  const text = JSON.stringify(bookData)
-  const matches = text.match(/"ExtentValue":\s*(?:"|{"content":")?(\d+)/g) || []
-
-  for (const matchText of matches) {
-    const numberMatch = matchText.match(/\d+/)
-
-    if (numberMatch) {
-      const pageCount = Number(numberMatch[0])
-
-      if (pageCount > 20 && pageCount < 3000) {
-        return pageCount
-      }
-    }
-  }
-
-  return ""
+  return [...new Set(names)]
 }
 
 function getLabelFromOpenBD(bookData) {
@@ -377,6 +291,115 @@ function getLabelFromOpenBD(bookData) {
   }
 
   return "不明"
+}
+
+function looksLikeLightNovel(bookData) {
+  const label = getLabelFromOpenBD(bookData)
+  const title = bookData?.summary?.title || ""
+
+  return (
+    label.includes("文庫") ||
+    label.includes("ノベル") ||
+    label.includes("ファンタジア") ||
+    label.includes("ダッシュエックス") ||
+    label.includes("電撃") ||
+    title.includes("ラノベ")
+  )
+}
+
+function getAuthorFromOpenBD(bookData) {
+  const authorNames = getContributorNamesByRole(bookData, ["A01"])
+  const illustratorNames = getContributorNamesByRole(bookData, ["A12", "A13", "A36", "B06"])
+
+  if (authorNames.length >= 2 && illustratorNames.length === 0 && looksLikeLightNovel(bookData)) {
+    return authorNames[0]
+  }
+
+  if (authorNames.length >= 1) {
+    return authorNames.join("、")
+  }
+
+  const summaryAuthor = bookData?.summary?.author || ""
+  const slashParts = splitCreatorText(summaryAuthor)
+
+  if (slashParts.length >= 2) {
+    return slashParts[0]
+  }
+
+  const commaParts = splitCommaCreatorText(summaryAuthor)
+
+  if (commaParts.length >= 2 && looksLikeLightNovel(bookData)) {
+    return commaParts[0]
+  }
+
+  if (summaryAuthor) {
+    return cleanName(summaryAuthor).replace(/,/g, "")
+  }
+
+  return "不明"
+}
+
+function getIllustratorFromOpenBD(bookData) {
+  const illustratorNames = getContributorNamesByRole(bookData, ["A12", "A13", "A36", "B06"])
+
+  if (illustratorNames.length >= 1) {
+    return illustratorNames.join("、")
+  }
+
+  const authorNames = getContributorNamesByRole(bookData, ["A01"])
+
+  if (authorNames.length >= 2 && looksLikeLightNovel(bookData)) {
+    return authorNames.slice(1).join("、")
+  }
+
+  const summaryAuthor = bookData?.summary?.author || ""
+  const slashParts = splitCreatorText(summaryAuthor)
+
+  if (slashParts.length >= 2) {
+    return slashParts.slice(1).join("、")
+  }
+
+  const commaParts = splitCommaCreatorText(summaryAuthor)
+
+  if (commaParts.length >= 2 && looksLikeLightNovel(bookData)) {
+    return commaParts.slice(1).join("、")
+  }
+
+  return "不明"
+}
+
+function getPriceFromOpenBD(bookData) {
+  const prices = bookData?.onix?.ProductSupply?.SupplyDetail?.Price
+
+  if (Array.isArray(prices)) {
+    const priceData = prices.find((price) => price.PriceAmount)
+
+    if (priceData && priceData.PriceAmount) {
+      return Number(getTextValue(priceData.PriceAmount))
+    }
+  }
+
+  return ""
+}
+
+function getPageCountFromOpenBD(bookData) {
+  const extents = bookData?.onix?.DescriptiveDetail?.Extent
+
+  if (Array.isArray(extents)) {
+    const pageData = extents.find((extent) => {
+      const type = getTextValue(extent.ExtentType)
+      const unit = getTextValue(extent.ExtentUnit)
+      const value = Number(getTextValue(extent.ExtentValue))
+
+      return value > 20 && value < 3000 && (type === "00" || type === "11" || unit === "03")
+    })
+
+    if (pageData && pageData.ExtentValue) {
+      return Number(getTextValue(pageData.ExtentValue))
+    }
+  }
+
+  return ""
 }
 
 function normalizePublisherName(publisherName) {
@@ -411,6 +434,25 @@ function getPublisherFromOpenBD(bookData) {
   return "不明"
 }
 
+async function getPageCountFromGoogleBooks(isbn) {
+  try {
+    const response = await fetch("https://www.googleapis.com/books/v1/volumes?q=isbn:" + isbn)
+    const data = await response.json()
+
+    if (
+      data.items &&
+      data.items[0] &&
+      data.items[0].volumeInfo &&
+      data.items[0].volumeInfo.pageCount
+    ) {
+      return Number(data.items[0].volumeInfo.pageCount)
+    }
+  } catch (error) {
+    console.log("Google Booksページ数取得エラー:", error)
+  }
+
+  return ""
+}
 
 // =====================
 // 詳細ページ
@@ -617,6 +659,11 @@ async function addBookByISBN(isbn) {
   }
 
   console.log("openBD内URL:", openbdUrls)
+
+  if (!pageCount) {
+  pageCount = await getPageCountFromGoogleBooks(isbn)
+}
+
 
   const image = await findWorkingCover(isbn, openbdUrls)
 
